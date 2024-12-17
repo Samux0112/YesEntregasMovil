@@ -19,5 +19,4 @@ const model = ref([
         </template>
     </ul>
 </template>
-
 <style lang="scss" scoped></style>

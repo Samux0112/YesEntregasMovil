@@ -86,6 +86,9 @@ export const useAuthStore = defineStore('auth', {
             if (user && groups) {
                 this.user = JSON.parse(user);
                 this.groups = JSON.parse(groups);
+            } else {
+                this.user = null;
+                this.groups = [];
             }
         }
     }
