@@ -22,6 +22,13 @@ export const useAuthStore = defineStore('auth', {
                 this.groups = response.data.groups;
                 this.error = null;
 
+                // Validar si el usuario pertenece al grupo "YesEntregas-Entregador"
+                const hasRequiredGroup = this.groups.includes('YesEntregas-Entregador');
+                if (!hasRequiredGroup) {
+                    throw new Error('No tienes permisos para acceder a este sistema.');
+                }
+
+                // Guardar datos en localStorage
                 localStorage.setItem('user', JSON.stringify(this.user));
                 localStorage.setItem('groups', JSON.stringify(this.groups));
 
@@ -37,7 +44,7 @@ export const useAuthStore = defineStore('auth', {
                 router.push({ name: 'dashboard' });
             } catch (err) {
                 console.error('Error al autenticar:', err);
-                this.error = 'Usuario o contraseña incorrectos.';
+                this.error = err.message || 'Usuario o contraseña incorrectos.';
                 this.user = null;
                 this.groups = [];
 

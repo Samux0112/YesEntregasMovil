@@ -1,6 +1,6 @@
 <script setup>
-import { useAuthStore } from '@/views/pages/auth/js/authStores.js'; // Importa el store de autenticación
 import { useLayout } from '@/layout/composables/layout';
+import { useAuthStore } from '@/views/pages/auth/js/authStores.js'; // Importa el store de autenticación
 import AppConfigurator from './AppConfigurator.vue';
 
 const authStore = useAuthStore(); // Instanciamos el store de autenticación
@@ -19,7 +19,7 @@ const handleLogout = () => {
                 <i class="pi pi-bars"></i>
             </button>
             <router-link to="/" class="layout-topbar-logo">
-                <span>Sistema de entregas</span>
+                <span>Yes entregas</span>
             </router-link>
         </div>
 

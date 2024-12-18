@@ -27,7 +27,7 @@ export default defineConfig({
     },
 
     server: {
-        host: '172.16.3.200', // Esto hace que el servidor escuche en todas las interfaces de red
+        host: '172.16.2.235', // Esto hace que el servidor escuche en todas las interfaces de red
         port: 3000, // Puedes cambiar el puerto si es necesario
         open: true, // Esto abrirá automáticamente el navegador
         proxy: {
