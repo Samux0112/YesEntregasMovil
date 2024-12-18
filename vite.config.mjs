@@ -27,7 +27,7 @@ export default defineConfig({
     },
 
     server: {
-        host: '172.16.2.235', // Esto hace que el servidor escuche en todas las interfaces de red
+        host: 'localhost',  // Cambié esto a 'localhost' para correr el proyecto localmente
         port: 3000, 
         open: true, 
         proxy: {
