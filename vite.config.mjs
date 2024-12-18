@@ -28,13 +28,13 @@ export default defineConfig({
 
     server: {
         host: '172.16.2.235', // Esto hace que el servidor escuche en todas las interfaces de red
-        port: 3000, // Puedes cambiar el puerto si es necesario
-        open: true, // Esto abrirá automáticamente el navegador
+        port: 3000, 
+        open: true, 
         proxy: {
             '/api': {
                 target: 'https://ad-auth.yes.com.sv', // URL del servidor API
                 changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api/, '') // Elimina el prefijo '/api'
+                rewrite: (path) => path.replace(/^\/api/, '') 
             }
         }
     }
