@@ -55,8 +55,8 @@ onMounted(() => {
             <br>
             <p>Para iniciar da click en el botón de iniciar entrega</p>
             <br>
- <!-- Botón de inicio de dia -->
- <Button label="Iniciar entregas" class="w-auto p-2 text-sm" @click="handleInicio"></Button>
+            <!-- Botón de inicio de dia -->
+            <Button label="Iniciar entregas" class="w-auto p-2 text-sm" @click="handleInicio"></Button>
             <!-- Mostrar fecha y hora con AM/PM -->
             <p class="text-xl mt-8">
             <span class="text-secondary font-semibold">{{ fechaHoraActual }}</span>
