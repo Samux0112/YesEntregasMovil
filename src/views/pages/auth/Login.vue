@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from 'vue';
 import { useAuthStore } from '@/views/pages/auth/js/authStores.js'; // Importa el store de autenticación
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const email = ref('');
@@ -34,7 +34,7 @@ const handleLogin = async () => {
                         <InputText id="username" type="text" placeholder="Nombre de usuario" class="w-full mb-8" v-model="email" @input="username = username.toUpperCase()" />
 
                         <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Contraseña</label>
-                        <Password id="password1" v-model="password" placeholder="Contraseña" :toggleMask="true" class="mb-4" fluid :feedback="false" />
+                        <Password id="password" v-model="password" placeholder="Contraseña" :toggleMask="true" class="mb-4" fluid :feedback="false" />
                         <!-- Botón de inicio de sesión -->
                         <Button label="Iniciar Sesión" class="w-full" @click="handleLogin"></Button>
                     </div>

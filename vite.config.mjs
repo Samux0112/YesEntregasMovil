@@ -27,15 +27,13 @@ export default defineConfig({
     },
 
     server: {
-        host: 'localhost',  // Cambié esto a 'localhost' para correr el proyecto localmente
-        port: 3000, 
-        open: true, 
-        proxy: {
+       proxy: {
             '/api': {
-                target: 'https://ad-auth.yes.com.sv', // URL del servidor API
+                target: 'http://localhost:3000', // Cambia esto a la URL de tu servidor Express
                 changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api/, '') 
+                rewrite: (path) => path.replace(/^\/api/, '')
             }
         }
     }
+    
 });
