@@ -3,7 +3,7 @@ import { useAuthStore } from '@/api/authStores.js'; // Importa el store de auten
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-const email = ref('');
+const username = ref('');
 const password = ref('');
 
 const authStore = useAuthStore(); // Instancia del store

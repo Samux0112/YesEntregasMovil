@@ -1,8 +1,8 @@
 <script setup>
 import { useAuthStore } from '@/api/authStores';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 import { computed, onMounted, ref } from 'vue';
-
 // Accede al store de autenticación
 const authStore = useAuthStore();
 
@@ -124,7 +124,7 @@ onMounted(() => {
 <template>
     <div class="grid grid-cols-12 gap-8">
         <div class="col-span-12 text-center">
-            <!-- Usamos el mensaje recibido de la API -->
+            <!-- Mensaje de bienvenida -->
             <h1 class="text-3xl font-bold">
                 {{ mensajeBienvenida || 'Cargando mensaje...' }}
             </h1>
@@ -136,7 +136,7 @@ onMounted(() => {
                 Ruta: <span class="text-primary font-semibold">{{ ruta }}</span>
             </p>
             <br>
-            <!-- Mostrar el mensaje indicativo -->
+            <!-- Mensaje indicativo -->
             <p class="text-xl mt-4">
                 {{ mensajeIndicativo || 'Cargando mensaje indicativo...' }}
             </p>
@@ -145,7 +145,7 @@ onMounted(() => {
             <Button label="Iniciar entregas" class="w-auto p-2 text-sm" @click="handleInicio"></Button>
             <br><br>
 
-            <!-- Mostrar la ubicación si está disponible -->
+            <!-- Ubicación -->
             <div v-if="authStore.location">
                 <p class="text-xl mt-4">
                     Ubicación obtenida:
@@ -163,7 +163,7 @@ onMounted(() => {
                 </p>
             </div>
 
-            <!-- Mostrar fecha y hora con AM/PM -->
+            <!-- Fecha y hora -->
             <p class="text-xl mt-8">
                 <span class="text-secondary font-semibold">{{ fechaHoraActual }}</span>
             </p>

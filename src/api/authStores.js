@@ -14,34 +14,28 @@ export const useAuthStore = defineStore('auth', {
     actions: {
         async login(username, password) {
             try {
-                // Llamada a la API para autenticar
                 const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/auth/', {
                     username,
                     password,
                     country: 'sv'
                 });
 
-                // Validar la respuesta de la API
                 if (!response.data.user_data || !response.data.groups) {
                     throw new Error('Credenciales incorrectas.');
                 }
 
-                // Asignar los datos del usuario y grupos
                 this.user = response.data.user_data;
                 this.groups = response.data.groups;
                 this.error = null;
 
-                // Validar si el usuario pertenece al grupo requerido
                 const hasRequiredGroup = this.groups.includes('YesEntregas-Entregador');
                 if (!hasRequiredGroup) {
                     throw new Error('No tienes los permisos necesarios para acceder a este sistema.');
                 }
 
-                // Guardar datos en localStorage
                 localStorage.setItem('user', JSON.stringify(this.user));
                 localStorage.setItem('groups', JSON.stringify(this.groups));
 
-                // Alerta de inicio de sesión exitoso
                 Swal.fire({
                     title: '¡Inicio de sesión exitoso!',
                     icon: 'success',
@@ -52,12 +46,10 @@ export const useAuthStore = defineStore('auth', {
                 // Solicitar permisos de geolocalización
                 this.requestLocationPermissions();
 
-                // Redirigir al dashboard
                 router.push({ name: 'dashboard' });
             } catch (err) {
                 console.error('Error al autenticar:', err);
 
-                // Asignar el error al estado y mostrar alerta
                 this.error = err.message || 'Usuario o contraseña incorrectos.';
                 Swal.fire({
                     title: 'Error',
@@ -71,18 +63,14 @@ export const useAuthStore = defineStore('auth', {
         async requestLocationPermissions() {
             try {
                 if ('geolocation' in navigator) {
-                    // Solicitar ubicación actual
-                    navigator.geolocation.getCurrentPosition(
+                    navigator.geolocation.watchPosition(
                         (position) => {
-                            // Guardar las coordenadas en el estado
                             this.location = {
                                 latitude: position.coords.latitude,
                                 longitude: position.coords.longitude
                             };
+                            console.log('Ubicación actualizada:', this.location);
 
-                            console.log('Ubicación obtenida:', this.location);
-
-                            // Guardar la ubicación en localStorage
                             localStorage.setItem('location', JSON.stringify(this.location));
                         },
                         (error) => {
@@ -94,7 +82,11 @@ export const useAuthStore = defineStore('auth', {
                                 confirmButtonText: 'Entendido'
                             });
                         },
-                        { enableHighAccuracy: true }
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 5000,
+                            maximumAge: 0
+                        }
                     );
                 } else {
                     Swal.fire({
@@ -109,6 +101,25 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
+        loadSession() {
+            const user = localStorage.getItem('user');
+            const groups = localStorage.getItem('groups');
+            const location = localStorage.getItem('location');
+
+            if (user && groups) {
+                try {
+                    this.user = JSON.parse(user);
+                    this.groups = JSON.parse(groups);
+                    if (location) {
+                        this.location = JSON.parse(location); // Cargar ubicación
+                    }
+                    console.log('Sesión cargada:', this.user, this.groups, this.location);
+                } catch (error) {
+                    console.error('Error al cargar la sesión:', error);
+                }
+            }
+        },
+
         logout() {
             Swal.fire({
                 title: '¿Estás seguro de que deseas cerrar sesión?',
@@ -118,15 +129,13 @@ export const useAuthStore = defineStore('auth', {
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Limpiar el estado y el almacenamiento local
                     this.user = null;
                     this.groups = [];
-                    this.location = null; // Limpiar ubicación
+                    this.location = null;
                     localStorage.removeItem('user');
                     localStorage.removeItem('groups');
                     localStorage.removeItem('location');
 
-                    // Alerta de cierre de sesión exitoso
                     Swal.fire({
                         title: 'Has cerrado sesión correctamente.',
                         icon: 'success',
@@ -134,39 +143,16 @@ export const useAuthStore = defineStore('auth', {
                         showConfirmButton: false
                     });
 
-                    // Redirigir al login
                     router.push({ name: 'login' });
                 }
             });
         },
 
-        loadSession() {
-            // Recuperar datos de usuario, grupos y ubicación desde localStorage
-            const user = localStorage.getItem('user');
-            const groups = localStorage.getItem('groups');
-            const location = localStorage.getItem('location'); // Cargar ubicación
-
-            if (user && groups) {
-                try {
-                    this.user = JSON.parse(user); // Asignar usuario al estado
-                    this.groups = JSON.parse(groups); // Asignar grupos al estado
-                    if (location) {
-                        this.location = JSON.parse(location); // Asignar ubicación si existe
-                    }
-                    console.log('Sesión cargada:', this.user, this.groups, this.location);
-                } catch (error) {
-                    console.error('Error al cargar la sesión:', error);
-                }
-            }
-        },
-
         isAuthenticated() {
-            // Devuelve true si el usuario está autenticado
             return !!this.user;
         },
 
         hasGroup(groupName) {
-            // Verifica si el usuario pertenece a un grupo específico
             return this.groups.includes(groupName);
         }
     }
