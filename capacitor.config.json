@@ -1,6 +1,6 @@
 {
-  "appId": "Yes.entregas",
+  "appId": "com.yes.entregas",
   "appName": "Yes-entregas",
-  "webDir": "www",
+  "webDir": "dist",
   "bundledWebRuntime": false
 }
