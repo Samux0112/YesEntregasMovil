@@ -1,5 +1,5 @@
 {
-    "name": "Yes-entregas",
+    "name": "yesentregas",
     "version": "4.2.0",
     "scripts": {
         "dev": "vite",
