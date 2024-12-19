@@ -11,7 +11,7 @@ const router = useRouter();
 
 // Función para manejar el inicio de sesión
 const handleLogin = async () => {
-    await authStore.login(email.value, password.value); // Llamamos la acción login
+    await authStore.login(username.value, password.value); // Llamamos la acción login
 };
 </script>
 
@@ -31,7 +31,7 @@ const handleLogin = async () => {
 
                     <div>
                         <label for="email1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Nombre de usuario</label>
-                        <InputText id="username" type="text" placeholder="Nombre de usuario" class="w-full mb-8" v-model="email" @input="username = username.toUpperCase()" />
+                        <InputText id="username" type="text" placeholder="Nombre de usuario" class="w-full mb-8" v-model="username" @input="username = username.toUpperCase()" />
 
                         <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Contraseña</label>
                         <Password id="password" v-model="password" placeholder="Contraseña" :toggleMask="true" class="mb-4" fluid :feedback="false" />

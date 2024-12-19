@@ -7,7 +7,8 @@ export const useAuthStore = defineStore('auth', {
     state: () => ({
         user: null, // Información del usuario autenticado
         groups: [], // Grupos asociados al usuario
-        error: null // Mensaje de error en caso de autenticación fallida
+        error: null, // Mensaje de error en caso de autenticación fallida
+        location: null // Ubicación del usuario (latitud y longitud)
     }),
 
     actions: {
@@ -22,7 +23,7 @@ export const useAuthStore = defineStore('auth', {
 
                 // Validar la respuesta de la API
                 if (!response.data.user_data || !response.data.groups) {
-                    throw new Error('Respuesta inválida del servidor.');
+                    throw new Error('Credenciales incorrectas.');
                 }
 
                 // Asignar los datos del usuario y grupos
@@ -33,7 +34,7 @@ export const useAuthStore = defineStore('auth', {
                 // Validar si el usuario pertenece al grupo requerido
                 const hasRequiredGroup = this.groups.includes('YesEntregas-Entregador');
                 if (!hasRequiredGroup) {
-                    throw new Error('No tienes permisos para acceder a este sistema.');
+                    throw new Error('No tienes los permisos necesarios para acceder a este sistema.');
                 }
 
                 // Guardar datos en localStorage
@@ -47,6 +48,9 @@ export const useAuthStore = defineStore('auth', {
                     timer: 2000,
                     showConfirmButton: false
                 });
+
+                // Solicitar permisos de geolocalización
+                this.requestLocationPermissions();
 
                 // Redirigir al dashboard
                 router.push({ name: 'dashboard' });
@@ -64,6 +68,47 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
+        async requestLocationPermissions() {
+            try {
+                if ('geolocation' in navigator) {
+                    // Solicitar ubicación actual
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            // Guardar las coordenadas en el estado
+                            this.location = {
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude
+                            };
+
+                            console.log('Ubicación obtenida:', this.location);
+
+                            // Guardar la ubicación en localStorage
+                            localStorage.setItem('location', JSON.stringify(this.location));
+                        },
+                        (error) => {
+                            console.error('Error al obtener la ubicación:', error.message);
+                            Swal.fire({
+                                title: 'Acceso a la ubicación',
+                                text: 'Se requiere acceso a la ubicación para esta aplicación.',
+                                icon: 'warning',
+                                confirmButtonText: 'Entendido'
+                            });
+                        },
+                        { enableHighAccuracy: true }
+                    );
+                } else {
+                    Swal.fire({
+                        title: 'Geolocalización no soportada',
+                        text: 'Tu dispositivo no soporta geolocalización.',
+                        icon: 'error',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+            } catch (error) {
+                console.error('Error al solicitar permisos de ubicación:', error);
+            }
+        },
+
         logout() {
             Swal.fire({
                 title: '¿Estás seguro de que deseas cerrar sesión?',
@@ -76,8 +121,10 @@ export const useAuthStore = defineStore('auth', {
                     // Limpiar el estado y el almacenamiento local
                     this.user = null;
                     this.groups = [];
+                    this.location = null; // Limpiar ubicación
                     localStorage.removeItem('user');
                     localStorage.removeItem('groups');
+                    localStorage.removeItem('location');
 
                     // Alerta de cierre de sesión exitoso
                     Swal.fire({
@@ -94,20 +141,22 @@ export const useAuthStore = defineStore('auth', {
         },
 
         loadSession() {
-            // Recuperar datos de usuario y grupos desde localStorage
+            // Recuperar datos de usuario, grupos y ubicación desde localStorage
             const user = localStorage.getItem('user');
             const groups = localStorage.getItem('groups');
+            const location = localStorage.getItem('location'); // Cargar ubicación
 
             if (user && groups) {
                 try {
                     this.user = JSON.parse(user); // Asignar usuario al estado
                     this.groups = JSON.parse(groups); // Asignar grupos al estado
-                    console.log('Sesión cargada desde localStorage:', this.user, this.groups);
+                    if (location) {
+                        this.location = JSON.parse(location); // Asignar ubicación si existe
+                    }
+                    console.log('Sesión cargada:', this.user, this.groups, this.location);
                 } catch (error) {
                     console.error('Error al cargar la sesión:', error);
                 }
-            } else {
-                console.log('No hay datos de sesión almacenados en localStorage.');
             }
         },
 

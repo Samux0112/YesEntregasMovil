@@ -72,6 +72,41 @@ const obtenerMensajeIndicativo = async () => {
     }
 };
 
+// Función para obtener la ubicación del usuario
+const obtenerUbicacion = async () => {
+    try {
+        if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    authStore.location = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    };
+                    console.log('Ubicación obtenida:', authStore.location);
+                },
+                (error) => {
+                    console.error('Error al obtener la ubicación:', error.message);
+                    Swal.fire({
+                        title: 'Acceso a la ubicación',
+                        text: 'Se requiere acceso a la ubicación para esta aplicación.',
+                        icon: 'warning',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+            );
+        } else {
+            Swal.fire({
+                title: 'Geolocalización no soportada',
+                text: 'Tu dispositivo no soporta geolocalización.',
+                icon: 'error',
+                confirmButtonText: 'Entendido'
+            });
+        }
+    } catch (error) {
+        console.error('Error al obtener la ubicación:', error);
+    }
+};
+
 // Actualizar la fecha y hora cada segundo
 onMounted(() => {
     actualizarFechaHora();
@@ -80,6 +115,9 @@ onMounted(() => {
     // Obtener el mensaje de bienvenida e indicativo al montar el componente
     obtenerMensajeBienvenida();
     obtenerMensajeIndicativo();
+
+    // Solicitar la ubicación al cargar el dashboard
+    obtenerUbicacion();
 });
 </script>
 
@@ -105,6 +143,26 @@ onMounted(() => {
             <br>
             <!-- Botón de inicio de día -->
             <Button label="Iniciar entregas" class="w-auto p-2 text-sm" @click="handleInicio"></Button>
+            <br><br>
+
+            <!-- Mostrar la ubicación si está disponible -->
+            <div v-if="authStore.location">
+                <p class="text-xl mt-4">
+                    Ubicación obtenida:
+                </p>
+                <p class="text-xl mt-2">
+                    Latitud: <span class="text-primary font-semibold">{{ authStore.location.latitude }}</span>
+                </p>
+                <p class="text-xl mt-2">
+                    Longitud: <span class="text-primary font-semibold">{{ authStore.location.longitude }}</span>
+                </p>
+            </div>
+            <div v-else>
+                <p class="text-xl mt-4 text-red-500">
+                    No se pudo obtener la ubicación.
+                </p>
+            </div>
+
             <!-- Mostrar fecha y hora con AM/PM -->
             <p class="text-xl mt-8">
                 <span class="text-secondary font-semibold">{{ fechaHoraActual }}</span>
@@ -112,3 +170,4 @@ onMounted(() => {
         </div>
     </div>
 </template>
+

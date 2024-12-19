@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.tu.paquete">
+
+    <!-- Permisos para acceder a la ubicación -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- Permiso para usar el servicio de ubicación en segundo plano -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:allowBackup="true"
@@ -9,6 +19,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+        <!-- Actividad principal -->
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
             android:name=".MainActivity"
@@ -24,6 +35,7 @@
 
         </activity>
 
+        <!-- Provider para compartir archivos -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -33,9 +45,14 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- Servicio de notificación en segundo plano (si lo usas) -->
+        <!-- Si estás usando un servicio en segundo plano, configúralo aquí -->
+        <service
+            android:name="com.capacitor.community.backgroundgeolocation.BackgroundGeolocationService"
+            android:enabled="true"
+            android:exported="false"
+            android:permission="android.permission.BLUETOOTH_ADMIN" />
     </application>
 
-    <!-- Permissions -->
-
-    <uses-permission android:name="android.permission.INTERNET" />
 </manifest>
