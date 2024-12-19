@@ -25,15 +25,5 @@ export default defineConfig({
             '@': fileURLToPath(new URL('./src', import.meta.url))
         }
     },
-
-    server: {
-       proxy: {
-            '/api': {
-                target: 'http://localhost:3000', // Cambia esto a la URL de tu servidor Express
-                changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api/, '')
-            }
-        }
-    }
     
 });
