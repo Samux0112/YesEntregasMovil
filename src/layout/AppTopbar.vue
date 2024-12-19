@@ -1,6 +1,6 @@
 <script setup>
+import { useAuthStore } from '@/api/authStores.js'; // Importa el store de autenticación
 import { useLayout } from '@/layout/composables/layout';
-import { useAuthStore } from '@/views/pages/auth/js/authStores.js'; // Importa el store de autenticación
 import AppConfigurator from './AppConfigurator.vue';
 
 const authStore = useAuthStore(); // Instanciamos el store de autenticación
