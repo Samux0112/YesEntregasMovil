@@ -2,5 +2,10 @@
   "appId": "com.yes.entregas",
   "appName": "Yes-entregas",
   "webDir": "dist",
-  "bundledWebRuntime": false
+  "bundledWebRuntime": false,
+  "plugins": {
+    "Geolocation": {
+      "backgroundPermission": "true"
+    }
+  }
 }
