@@ -14,7 +14,7 @@ export const useAuthStore = defineStore('auth', {
         async login(username, password) {
             try {
                 // Llamada a la API para autenticar
-                const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/auth', {
+                const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/auth/', {
                     username,
                     password,
                     country: 'sv'
