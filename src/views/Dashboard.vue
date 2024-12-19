@@ -39,7 +39,7 @@ const actualizarFechaHora = () => {
 // Función para obtener el mensaje de bienvenida desde la API
 const obtenerMensajeBienvenida = async () => {
     try {
-        const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/etiquetas', {
+        const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/etiquetas/', {
             param: 'msg_bienvenida',
         });
 
@@ -57,7 +57,7 @@ const obtenerMensajeBienvenida = async () => {
 // Función para obtener el mensaje indicativo desde la API
 const obtenerMensajeIndicativo = async () => {
     try {
-        const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/etiquetas', {
+        const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/etiquetas/', {
             param: 'msg_info',
         });
 
