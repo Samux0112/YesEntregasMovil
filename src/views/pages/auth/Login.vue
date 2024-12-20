@@ -1,6 +1,6 @@
 <script setup>
 import { useAuthStore } from '@/api-plugins/authStores.js'; // Importa el store de autenticación
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 const username = ref('');
@@ -8,10 +8,25 @@ const password = ref('');
 
 const authStore = useAuthStore(); // Instancia del store
 const router = useRouter();
+//poner en mayuscula las palabras del username
+watch(username, (newValue) => {
+    username.value = newValue.toUpperCase();
+});
+
+//poner en mayuscula las palabras de password
+watch(password, (newValue) => {
+    password.value = newValue.toUpperCase();
+});
 
 // Función para manejar el inicio de sesión
 const handleLogin = async () => {
-    await authStore.login(username.value, password.value); // Llamamos la acción login
+    try {
+        await authStore.login(username.value, password.value); // Llamamos la acción login
+        router.push('/dashboard'); // Redirige al dashboard si el login es exitoso
+    } catch (error) {
+        console.error('Error en el inicio de sesión:', error);
+        // Puedes mostrar una alerta al usuario aquí si el login falla
+    }
 };
 </script>
 
@@ -30,11 +45,24 @@ const handleLogin = async () => {
                     </div>
 
                     <div>
-                        <label for="email1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Nombre de usuario</label>
-                        <InputText id="username" type="text" placeholder="Nombre de usuario" class="w-full mb-8" v-model="username" @input="username = username.toUpperCase()" />
+                        <label for="username" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Nombre de usuario</label>
+                        <InputText
+                            id="username"
+                            type="text"
+                            class="w-full mb-8"
+                            v-model="username"
+                        />
 
-                        <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Contraseña</label>
-                        <Password id="password" v-model="password" placeholder="Contraseña" :toggleMask="true" class="mb-4" fluid :feedback="false" />
+                        <label for="password" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Contraseña</label>
+                        <Password
+                            id="password"
+                            v-model="password"
+                            :toggleMask="true"
+                            class="mb-4"
+                            fluid
+                            :feedback="false"
+                            @keyup.enter="handleLogin"
+                        />
                         <!-- Botón de inicio de sesión -->
                         <Button label="Iniciar Sesión" class="w-full" @click="handleLogin"></Button>
                     </div>
@@ -45,6 +73,12 @@ const handleLogin = async () => {
 </template>
 
 <style scoped>
+/* Asegurar que los textos aparecen visualmente en mayusculas */
+#username,
+#password {
+    text-transform: uppercase;
+}
+
 .pi-eye {
     transform: scale(1.6);
     margin-right: 1rem;
