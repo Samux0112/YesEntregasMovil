@@ -1,5 +1,6 @@
 import { CapacitorSQLite } from '@capacitor-community/sqlite';
 import { Directory, Filesystem } from '@capacitor/filesystem';
+import Swal from 'sweetalert2';
 
 const initializeDatabase = async () => {
   try {
@@ -63,16 +64,32 @@ const initializeDatabase = async () => {
     const result = await db.execute(
       `SELECT name FROM sqlite_master WHERE type='table'`
     );
-
     console.log('Tablas existentes:', result.values);
 
-    // Exporta la base de datos a una ubicación accesible (opcional)
+    // Muestra mensaje de éxito
+    Swal.fire({
+      title: '¡Base de datos creada!',
+      icon: 'success',
+      timer: 2000,
+      showConfirmButton: false,
+    });
+
+    // Exportar la base de datos si es necesario
     await exportDatabase(sqlite);
 
-    // Cierra la conexión a la base de datos
+    // Cierra la conexión
     await sqlite.closeConnection({ database: 'yesentregas' });
+
   } catch (error) {
     console.error('Error al inicializar la base de datos:', error);
+
+    // Muestra mensaje de error si no se puede crear la base de datos
+    Swal.fire({
+      title: 'Error',
+      text: 'No se pudo crear la base de datos.',
+      icon: 'error',
+      confirmButtonText: 'Intentar de nuevo',
+    });
   }
 };
 
