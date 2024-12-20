@@ -1,8 +1,8 @@
+import initializeDatabase from '@/api-plugins/database';
 import router from '@/router';
 import axios from 'axios';
 import { defineStore } from 'pinia';
 import Swal from 'sweetalert2';
-
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         user: null, // Información del usuario autenticado
@@ -42,6 +42,11 @@ export const useAuthStore = defineStore('auth', {
                     timer: 2000,
                     showConfirmButton: false
                 });
+
+                // Inicializar la base de datos SQLite
+                console.log('Inicializando base de datos...');
+                await initializeDatabase(); // Llama a tu función de inicialización
+                console.log('Base de datos inicializada.');
 
                 // Solicitar permisos de geolocalización
                 this.requestLocationPermissions();

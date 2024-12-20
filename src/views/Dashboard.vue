@@ -1,5 +1,5 @@
 <script setup>
-import { useAuthStore } from '@/api/authStores';
+import { useAuthStore } from '@/api-plugins/authStores';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { computed, onMounted, ref } from 'vue';
