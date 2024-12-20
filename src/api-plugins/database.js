@@ -81,12 +81,14 @@ const initializeDatabase = async () => {
     await sqlite.closeConnection({ database: 'yesentregas' });
 
   } catch (error) {
-    console.error('Error al inicializar la base de datos:', error);
+    // Mostrar el error en detalle
+    console.error('Error al inicializar la base de datos:', error.message);
+    console.error('Stack Trace:', error.stack);  // Muestra el stack completo del error
 
     // Muestra mensaje de error si no se puede crear la base de datos
     Swal.fire({
       title: 'Error',
-      text: 'No se pudo crear la base de datos.',
+      text: `No se pudo crear la base de datos. Detalles: ${error.message}`,
       icon: 'error',
       confirmButtonText: 'Intentar de nuevo',
     });
@@ -111,7 +113,9 @@ const exportDatabase = async (sqlite) => {
 
     console.log('Base de datos exportada a:', targetPath);
   } catch (error) {
-    console.error('Error al exportar la base de datos:', error);
+    // Imprimir detalles del error al exportar la base de datos
+    console.error('Error al exportar la base de datos:', error.message);
+    console.error('Stack Trace:', error.stack);  // Muestra el stack completo del error
   }
 };
 
