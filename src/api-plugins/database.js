@@ -1,4 +1,5 @@
 import { CapacitorSQLite } from '@capacitor-community/sqlite';
+import { Directory, Filesystem } from '@capacitor/filesystem';
 
 const initializeDatabase = async () => {
   try {
@@ -57,10 +58,42 @@ const initializeDatabase = async () => {
     await db.execute(createTablesQuery);
 
     console.log('Base de datos inicializada y tablas creadas');
-    await sqlite.closeConnection({ database: 'yesentregas' });
 
+    // Verifica si las tablas fueron creadas correctamente
+    const result = await db.execute(
+      `SELECT name FROM sqlite_master WHERE type='table'`
+    );
+
+    console.log('Tablas existentes:', result.values);
+
+    // Exporta la base de datos a una ubicación accesible (opcional)
+    await exportDatabase(sqlite);
+
+    // Cierra la conexión a la base de datos
+    await sqlite.closeConnection({ database: 'yesentregas' });
   } catch (error) {
     console.error('Error al inicializar la base de datos:', error);
+  }
+};
+
+const exportDatabase = async (sqlite) => {
+  try {
+    const dbLocation = await sqlite.getDatabaseLocation();
+    const databasePath = `${dbLocation}/yesentregas.db`;
+
+    // Copia el archivo de base de datos al almacenamiento accesible
+    await Filesystem.copy({
+      from: databasePath,
+      to: `${Directory.Documents}/yesentregas.db`,
+      directory: Directory.Data,
+    });
+
+    console.log(
+      'Base de datos exportada a:',
+      `${Directory.Documents}/yesentregas.db`
+    );
+  } catch (error) {
+    console.error('Error al exportar la base de datos:', error);
   }
 };
 
