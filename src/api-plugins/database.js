@@ -99,10 +99,10 @@ const exportDatabase = async (sqlite) => {
     const dbLocation = await sqlite.getDatabaseLocation();
     const databasePath = `${dbLocation}/yesentregas.db`; // Nombre de la base de datos
 
-    // Copia el archivo de base de datos a la carpeta de Descargas
-    const targetPath = `${Directory.Documents}/yesentregas.db`; // Aquí puedes usar otros directorios también
+    // Copia el archivo de base de datos a la carpeta de Documentos o Descargas
+    const targetPath = `${Directory.Documents}/yesentregas.db`; // Aquí se especifica la carpeta de Documentos
 
-    // Usamos Filesystem para mover el archivo a la carpeta de Descargas o Android
+    // Usamos Filesystem para mover el archivo a la carpeta de Documentos
     await Filesystem.copy({
       from: databasePath,
       to: targetPath,
