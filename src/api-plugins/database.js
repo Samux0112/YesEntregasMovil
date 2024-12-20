@@ -95,20 +95,21 @@ const initializeDatabase = async () => {
 
 const exportDatabase = async (sqlite) => {
   try {
+    // Obtiene la ubicación de la base de datos
     const dbLocation = await sqlite.getDatabaseLocation();
-    const databasePath = `${dbLocation}/yesentregas.db`;
+    const databasePath = `${dbLocation}/yesentregas.db`; // Nombre de la base de datos
 
-    // Copia el archivo de base de datos al almacenamiento accesible
+    // Copia el archivo de base de datos a la carpeta de Descargas
+    const targetPath = `${Directory.Documents}/yesentregas.db`; // Aquí puedes usar otros directorios también
+
+    // Usamos Filesystem para mover el archivo a la carpeta de Descargas o Android
     await Filesystem.copy({
       from: databasePath,
-      to: `${Directory.Documents}/yesentregas.db`,
-      directory: Directory.Data,
+      to: targetPath,
+      directory: Directory.Data, // Asegúrate de usar el directorio correcto
     });
 
-    console.log(
-      'Base de datos exportada a:',
-      `${Directory.Documents}/yesentregas.db`
-    );
+    console.log('Base de datos exportada a:', targetPath);
   } catch (error) {
     console.error('Error al exportar la base de datos:', error);
   }
