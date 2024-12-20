@@ -1,14 +1,16 @@
 import initializeDatabase from '@/api-plugins/database';
+import { insertLogWithJson } from '@/api-plugins/InsertLogService'; // Asegúrate de importar la función para insertar el log
 import router from '@/router';
 import axios from 'axios';
 import { defineStore } from 'pinia';
 import Swal from 'sweetalert2';
+
 export const useAuthStore = defineStore('auth', {
     state: () => ({
-        user: null, // Información del usuario autenticado
-        groups: [], // Grupos asociados al usuario
-        error: null, // Mensaje de error en caso de autenticación fallida
-        location: null // Ubicación del usuario (latitud y longitud)
+        user: null,
+        groups: [],
+        error: null,
+        location: null
     }),
 
     actions: {
@@ -50,11 +52,10 @@ export const useAuthStore = defineStore('auth', {
 
                 // Solicitar permisos de geolocalización
                 this.requestLocationPermissions();
-
+                
                 router.push({ name: 'dashboard' });
             } catch (err) {
                 console.error('Error al autenticar:', err);
-
                 this.error = err.message || 'Usuario o contraseña incorrectos.';
                 Swal.fire({
                     title: 'Error',
@@ -77,6 +78,31 @@ export const useAuthStore = defineStore('auth', {
                             console.log('Ubicación actualizada:', this.location);
 
                             localStorage.setItem('location', JSON.stringify(this.location));
+
+                            // Crear el log con la ubicación y la información del usuario
+                            const logData = {
+                                id: Date.now(), // ID único
+                                json_accion: {
+                                    'fecha-hora': new Date().toLocaleString('es-ES', {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit',
+                                        hour12: true,
+                                    }),
+                                    'Accion': 'Login',
+                                    'Username': this.user?.Username || 'No disponible',
+                                    'latitud': this.location.latitude,
+                                    'longitud': this.location.longitude
+                                },
+                                aplicado: 1 // Estado de "aplicado"
+                            };
+
+                            // Insertar el log en la base de datos
+                            insertLogWithJson(logData);
                         },
                         (error) => {
                             console.error('Error al obtener la ubicación:', error.message);

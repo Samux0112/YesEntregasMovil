@@ -1,6 +1,5 @@
 <script setup>
 import { useAuthStore } from '@/api-plugins/authStores';
-import { insertLogWithJson } from '@/api-plugins/InsertLogService'; // Importar la función para insertar log
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { computed, onMounted, ref } from 'vue';
@@ -89,22 +88,6 @@ const obtenerUbicacion = async () => {
                         longitude: position.coords.longitude
                     };
                     console.log('Ubicación obtenida:', authStore.location);
-
-                    // Preparar el objeto logData con la información del log
-                    const logData = {
-                        id: Date.now(), // ID único, puedes usar Date.now() para generar un timestamp único
-                        json_accion: {
-                            'fecha-hora': fechaHoraActual.value,
-                            'Accion': 'Login',
-                            'Username': username.value,
-                            'latitud': authStore.location.latitude,
-                            'longitud': authStore.location.longitude
-                        },
-                        aplicado: 1 // Estado "aplicado"
-                    };
-
-                    // Insertar el log en la base de datos local
-                    insertLogWithJson(logData);
                 },
                 (error) => {
                     console.error('Error al obtener la ubicación:', error.message);
