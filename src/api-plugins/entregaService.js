@@ -1,4 +1,3 @@
-// api-plugins/entregaService.js
 import { CapacitorSQLite } from '@capacitor-community/sqlite'; // Usa este nombre correcto
 
 export const getLogs = async () => {
@@ -9,13 +8,11 @@ export const getLogs = async () => {
     });
     await db.open();
 
-    const query = 'SELECT * FROM logs';
+    const query = 'SELECT * FROM log';  // Consulta simple para obtener todos los logs
     const result = await db.executeSql(query);
 
-    let logs = [];
-    for (let i = 0; i < result.rows.length; i++) {
-      logs.push(result.rows.item(i));
-    }
+    // No hace falta convertirlo a array, directamente lo retornamos
+    const logs = result.rows;  // Solo retornamos las filas tal como están
     db.close(); // Asegúrate de cerrar la base de datos después de la consulta
     return logs;
   } catch (error) {

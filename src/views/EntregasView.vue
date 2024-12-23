@@ -1,14 +1,8 @@
 <script setup>
-import { useAuthStore } from '@/api-plugins/authStores';
-import { getLogs } from '@/api-plugins/entregaService'; // Importar las funciones
+import { getLogs } from '@/api-plugins/entregaService'; // Importar la función para obtener los logs
 import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router'; // Importar el router
-
-const router = useRouter();
-const authStore = useAuthStore();
 
 const logs = ref([]); // Estado para almacenar los logs obtenidos
-const filters = ref({}); // Filtros para la tabla
 
 // Función para cargar los logs desde la base de datos
 const cargarLogs = async () => {
@@ -26,52 +20,53 @@ onMounted(() => {
 });
 </script>
 
-<template>
+<<template>
   <div class="grid grid-cols-12 gap-8">
     <div class="col-span-12 text-center">
       <h1 class="text-3xl font-bold">Logs de Actividad</h1>
 
-      <!-- DataTable de PrimeVue para mostrar los logs -->
-      <DataTable :value="logs" paginator :rows="10" :filters="filters" dataKey="id" :rowHover="true" showGridlines>
-        <template #header>
-          <div class="flex justify-between">
-            <InputText v-model="filters['global'].value" placeholder="Buscar logs..." class="p-inputtext-sm" />
-          </div>
-        </template>
+      <!-- Si hay logs, los mostramos en la tabla -->
+      <div v-if="logs.length > 0">
+        <table class="table-auto border-collapse w-full">
+          <thead>
+            <tr>
+              <th class="border p-2">ID</th>
+              <th class="border p-2">Acción</th>
+              <th class="border p-2">Aplicado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="log in logs" :key="log.id">
+              <td class="border p-2">{{ log.id }}</td>
+              <td class="border p-2">{{ log.json_accion }}</td>
+              <td class="border p-2">{{ log.aplicado }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-        <!-- Columnas de la tabla -->
-        <Column field="Accion" header="Acción" :filter="true" :showFilterMatchModes="false" style="min-width: 12rem">
-          <template #body="{ data }">
-            {{ JSON.parse(data.json_accion).Accion }}
-          </template>
-        </Column>
-
-        <Column field="fecha-hora" header="Fecha y hora" :filter="true" style="min-width: 12rem">
-          <template #body="{ data }">
-            {{ JSON.parse(data.json_accion)['fecha-hora'] }}
-          </template>
-        </Column>
-
-        <Column field="Username" header="Usuario" :filter="true" style="min-width: 10rem">
-          <template #body="{ data }">
-            {{ JSON.parse(data.json_accion).Username }}
-          </template>
-        </Column>
-
-        <Column field="latitud" header="Latitud" :filter="true" style="min-width: 10rem">
-          <template #body="{ data }">
-            {{ JSON.parse(data.json_accion).latitud }}
-          </template>
-        </Column>
-
-        <Column field="longitud" header="Longitud" :filter="true" style="min-width: 10rem">
-          <template #body="{ data }">
-            {{ JSON.parse(data.json_accion).longitud }}
-          </template>
-        </Column>
-
-      </DataTable>
+      <!-- Si no hay logs, mostramos un mensaje -->
+      <div v-else>
+        <p>No se han encontrado logs.</p>
+      </div>
     </div>
   </div>
 </template>
 
+
+<style scoped>
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  text-align: left;
+  padding: 8px;
+}
+
+th {
+  background-color: #f4f4f4;
+}
+</style>
