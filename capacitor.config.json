@@ -6,6 +6,14 @@
   "plugins": {
     "Geolocation": {
       "backgroundPermission": "true"
+    },
+    "SQLite": {
+      "iosDatabaseLocation": "Library",
+      "androidDatabaseLocation": "default"
     }
+  },
+  "server": {
+    "url": "http://localhost:3000", 
+    "cleartext": true                  
   }
 }
