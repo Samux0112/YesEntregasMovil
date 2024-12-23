@@ -21,6 +21,10 @@ export const insertLogWithJson = async (logData) => {
         version: 1,
       });
 
+      if (!db) {
+        throw new Error('La conexión a la base de datos no pudo ser creada.');
+      }
+
       // Abrir la base de datos
       await db.open();
 
