@@ -16,12 +16,14 @@ export const useAuthStore = defineStore('auth', {
     actions: {
         async login(username, password) {
             try {
+                // Solicitar autenticación en la API
                 const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/auth/', {
                     username,
                     password,
                     country: 'sv'
                 });
 
+                // Verificar respuesta
                 if (!response.data.user_data || !response.data.groups) {
                     throw new Error('Credenciales incorrectas.');
                 }
@@ -35,15 +37,18 @@ export const useAuthStore = defineStore('auth', {
                     throw new Error('No tienes los permisos necesarios para acceder a este sistema.');
                 }
 
+                // Guardar en localStorage
                 localStorage.setItem('user', JSON.stringify(this.user));
                 localStorage.setItem('groups', JSON.stringify(this.groups));
 
+                // Alerta de inicio de sesión exitoso
                 Swal.fire({
                     title: '¡Inicio de sesión exitoso!',
                     icon: 'success',
                     timer: 2000,
                     showConfirmButton: false
                 });
+                console.log('Inicio de sesión exitoso:', this.user, this.groups);
 
                 // Inicializar la base de datos SQLite
                 console.log('Inicializando base de datos...');
@@ -70,7 +75,7 @@ export const useAuthStore = defineStore('auth', {
             try {
                 if ('geolocation' in navigator) {
                     navigator.geolocation.watchPosition(
-                        (position) => {
+                        async (position) => {
                             this.location = {
                                 latitude: position.coords.latitude,
                                 longitude: position.coords.longitude
@@ -102,7 +107,28 @@ export const useAuthStore = defineStore('auth', {
                             };
 
                             // Insertar el log en la base de datos
-                            insertLogWithJson(logData);
+                            try {
+                                console.log('Insertando log:', logData);
+                                await insertLogWithJson(logData);
+                                console.log('Log insertado correctamente');
+
+                                // Mostrar SweetAlert de éxito
+                                Swal.fire({
+                                    title: 'Log Insertado',
+                                    text: 'El log se ha insertado correctamente en la base de datos.',
+                                    icon: 'success',
+                                    confirmButtonText: 'Aceptar'
+                                });
+                            } catch (insertError) {
+                                console.error('Error al insertar el log:', insertError);
+                                // Mostrar SweetAlert de error
+                                Swal.fire({
+                                    title: 'Error al insertar log',
+                                    text: 'No se pudo insertar el log en la base de datos.',
+                                    icon: 'error',
+                                    confirmButtonText: 'Intentar de nuevo'
+                                });
+                            }
                         },
                         (error) => {
                             console.error('Error al obtener la ubicación:', error.message);
@@ -129,6 +155,12 @@ export const useAuthStore = defineStore('auth', {
                 }
             } catch (error) {
                 console.error('Error al solicitar permisos de ubicación:', error);
+                Swal.fire({
+                    title: 'Error al solicitar permisos',
+                    text: 'No se pudo acceder a la ubicación. Asegúrate de habilitar los permisos.',
+                    icon: 'error',
+                    confirmButtonText: 'Intentar de nuevo'
+                });
             }
         },
 
