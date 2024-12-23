@@ -6,35 +6,40 @@ export const insertLogWithJson = async (logData) => {
     if (Capacitor.isNativePlatform()) {
       const sqlite = CapacitorSQLite;
 
-      // Conectarse a la base de datos
-      const db = await sqlite.createConnection({
-        database: 'yesentregas',
-        encrypted: false,
-        mode: 'no-encryption',
-        version: 1,
-      });
+      // Verificar si la conexión ya existe antes de crear una nueva
+      const existingConnection = await sqlite.isConnection({ database: 'yesentregas' });
+      if (!existingConnection.result) {
+        console.log('Creando nueva conexión...');
+        await sqlite.createConnection({
+          database: 'yesentregas',
+          encrypted: false,
+          mode: 'no-encryption',
+          version: 1,
+        });
+      }
 
-      await db.open();
+      const db = await sqlite.open({ database: 'yesentregas' });
 
-      // Query para insertar en la tabla `log`
+      // Insertar datos en la tabla log
       const query = `
         INSERT INTO log (id, json_accion, aplicado)
         VALUES (?, ?, ?);
       `;
       const values = [
-        logData.id, // ID único para el registro
-        JSON.stringify(logData.json_accion), // Convertir el JSON a texto para almacenarlo
-        logData.aplicado, // Estado de "aplicado" (1 o 0)
+        logData.id,
+        JSON.stringify(logData.json_accion),
+        logData.aplicado,
       ];
 
       const result = await db.run({ statement: query, values });
       console.log('Log insertado:', result);
 
+      // Cerrar la conexión después de insertar
       await sqlite.closeConnection({ database: 'yesentregas' });
     } else {
       console.log('No está corriendo en un dispositivo nativo, no se puede insertar log');
     }
   } catch (error) {
-    console.error('Error al insertar log:', error);
+    console.error('Error al insertar log:', error.message);
   }
 };
