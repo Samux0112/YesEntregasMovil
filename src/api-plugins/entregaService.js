@@ -1,63 +1,33 @@
-import { CapacitorSQLite } from '@capacitor-community/sqlite';
-
-export const insertLogWithJson = async (logData) => {
-  try {
-    const sqlite = CapacitorSQLite;
-
-    // Conectarse a la base de datos
-    const db = await sqlite.createConnection({
-      database: 'yesentregas',
-      encrypted: false,
-      mode: 'no-encryption',
-      version: 1,
-    });
-
-    await db.open();
-
-    // Query para insertar en la tabla `log`
-    const query = `
-      INSERT INTO log (id, json_accion, aplicado)
-      VALUES (?, ?, ?);
-    `;
-    const values = [
-      logData.id, // ID único para el registro
-      JSON.stringify(logData.json_accion), // Convertir el JSON a texto para almacenarlo
-      logData.aplicado, // Estado de "aplicado" (1 o 0)
-    ];
-
-    const result = await db.run({ statement: query, values });
-    console.log('Log insertado:', result);
-
-    await sqlite.closeConnection({ database: 'yesentregas' });
-
-  } catch (error) {
-    console.error('Error al insertar log:', error);
-  }
-};
+// api-plugins/entregaService.js
+import { SQLite } from '@capacitor-community/sqlite';
 
 export const getLogs = async () => {
   try {
-    const sqlite = CapacitorSQLite;
-
-    // Conectarse a la base de datos
-    const db = await sqlite.createConnection({
-      database: 'yesentregas',
-      encrypted: false,
-      mode: 'no-encryption',
-      version: 1,
+    const db = await SQLite.create({
+      name: 'yesentregas',
+      location: 'default',
     });
 
     await db.open();
 
-    // Query para obtener los registros de log
-    const query = `SELECT * FROM log;`;
+    // Consulta los logs en la tabla 'log'
+    const query = 'SELECT * FROM log'; 
+    const result = await db.executeSql(query);
 
-    const result = await db.query(query);
-    await sqlite.closeConnection({ database: 'yesentregas' });
+    // Si los logs están vacíos, retornar un arreglo vacío
+    if (result.rows.length === 0) {
+      return [];
+    }
 
-    return result.values; // Devuelve los registros obtenidos
+    const logs = [];
+    for (let i = 0; i < result.rows.length; i++) {
+      logs.push(result.rows.item(i));
+    }
+
+    db.close();
+    return logs;
   } catch (error) {
-    console.error('Error al obtener los logs:', error);
-    return [];
+    console.error('Error al obtener los logs: ', error);
+    return []; // En caso de error, retornar un arreglo vacío
   }
 };
