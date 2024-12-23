@@ -19,11 +19,11 @@ const initializeDatabase = async () => {
       // Intentar abrir la base de datos
       await db.open();
 
-      // Si la base de datos se abre exitosamente, se considera creada
+      // Verificar si las tablas ya existen
       const result = await db.execute(`SELECT name FROM sqlite_master WHERE type='table'`);
       
       if (result.values.length === 0) {
-        // No se encontró ninguna tabla, por lo que creamos las tablas
+        // Si no hay tablas, crearlas
         const createTablesQuery = `
           CREATE TABLE IF NOT EXISTS etiquetas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,7 +76,7 @@ const initializeDatabase = async () => {
         // Exportar la base de datos si es necesario
         await exportDatabase(sqlite);
       } else {
-        // Si las tablas ya existen, indicamos que la base de datos ya fue creada
+        // Si las tablas ya existen
         console.log('La base de datos ya existe');
         Swal.fire({
           title: 'La base de datos ya existe',
@@ -92,11 +92,9 @@ const initializeDatabase = async () => {
       console.log('No está corriendo en un dispositivo nativo, no se puede inicializar la base de datos');
     }
   } catch (error) {
-    // Mostrar el error en detalle
     console.error('Error al inicializar la base de datos:', error.message);
-    console.error('Stack Trace:', error.stack);  // Muestra el stack completo del error
+    console.error('Stack Trace:', error.stack);
 
-    // Muestra mensaje de error si no se puede crear la base de datos
     Swal.fire({
       title: 'Error',
       text: `No se pudo crear la base de datos. Detalles: ${error.message}`,
@@ -108,26 +106,22 @@ const initializeDatabase = async () => {
 
 const exportDatabase = async (sqlite) => {
   try {
-    // Obtiene la ubicación de la base de datos
     const dbLocation = await sqlite.getDatabaseLocation();
-    console.log('Ubicación de la base de datos:', dbLocation);  // Imprime la ubicación de la base de datos
-    const databasePath = `${dbLocation}/yesentregas.db`; // Nombre de la base de datos
+    console.log('Ubicación de la base de datos:', dbLocation);
+    const databasePath = `${dbLocation}/yesentregas.db`;
 
-    // Copia el archivo de base de datos a la carpeta de Documentos o Descargas
-    const targetPath = `${Directory.Documents}/yesentregas.db`; // Aquí se especifica la carpeta de Documentos
+    const targetPath = `${Directory.Documents}/yesentregas.db`;
 
-    // Usamos Filesystem para mover el archivo a la carpeta de Documentos
     await Filesystem.copy({
       from: databasePath,
       to: targetPath,
-      directory: Directory.Data, // Asegúrate de usar el directorio correcto
+      directory: Directory.Data,
     });
 
     console.log('Base de datos exportada a:', targetPath);
   } catch (error) {
-    // Imprimir detalles del error al exportar la base de datos
     console.error('Error al exportar la base de datos:', error.message);
-    console.error('Stack Trace:', error.stack);  // Muestra el stack completo del error
+    console.error('Stack Trace:', error.stack);
   }
 };
 
