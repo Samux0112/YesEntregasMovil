@@ -23,8 +23,8 @@ const routes = [
                 component: () => import('@/views/Dashboard.vue')
             },
             {
-                path: 'entregas', // Nueva ruta para la vista de entregas
-                name: 'entregas',
+                path: 'clientes', // Nueva ruta para la vista de entregas
+                name: 'clientes',
                 component: () => import('@/views/ClientesView.vue'), // Ruta a la vista de entregas
                 meta: { requiresAuth: true }
             }

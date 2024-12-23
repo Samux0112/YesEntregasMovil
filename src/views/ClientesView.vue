@@ -3,7 +3,8 @@ import { useAuthStore } from '@/api-plugins/authStores';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { computed, onMounted, ref } from 'vue';
-
+const options = ref(['list', 'grid']);
+const layout = ref('list');
 // Accede al store de autenticación
 const authStore = useAuthStore();
 
@@ -62,48 +63,107 @@ const mostrarClientesGuardados = () => {
 onMounted(() => {
     mostrarClientesGuardados();
 });
+
+
 </script>
 
 <template>
     <div class="grid grid-cols-12 gap-8">
-        <div class="col-span-12 text-center">
-            <h1 class="text-3xl font-bold">Clientes</h1>
-            <br>
-            <!-- Botón para cargar clientes -->
-            <Button
-                label="Cargar clientes"
-                class="w-auto p-2 text-sm"
-                @click="cargarClientes"
-            ></Button>
-            <br><br>
-
-            <!-- Mostrar clientes cargados -->
+        <div class="col-span-12">
+            <!-- Mostrar clientes en DataView -->
             <div v-if="clientes.length > 0" class="mt-4">
-                <h2 class="text-2xl font-semibold mb-4">Lista de Clientes:</h2>
-                <table class="table-auto w-full border">
-                    <thead>
-                        <tr>
-                            <th class="border px-4 py-2">Código</th>
-                            <th class="border px-4 py-2">Nombre</th>
-                            <th class="border px-4 py-2">Dirección</th>
-                            <th class="border px-4 py-2">Teléfono</th>
-                            <th class="border px-4 py-2">Municipio</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="cliente in clientes" :key="cliente.KUNNR">
-                            <td class="border px-4 py-2">{{ cliente.KUNNR }}</td>
-                            <td class="border px-4 py-2">{{ cliente.NAME1 }}</td>
-                            <td class="border px-4 py-2">{{ cliente.STRAS }}</td>
-                            <td class="border px-4 py-2">{{ cliente.TELF1 }}</td>
-                            <td class="border px-4 py-2">{{ cliente.MUNIC }}</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <DataView :value="clientes" :layout="layout">
+                    <template #header>
+                        <div class="font-semibold text-xl">Clientes</div>
+                        <Button label="Cargar clientes" class="w-auto p-2 text-sm" @click="cargarClientes"></Button>
+                        <div class="flex justify-end">
+                            <SelectButton v-model="layout" :options="options" :allowEmpty="false">
+                                <template #option="{ option }">
+                                    <i :class="[option === 'list' ? 'pi pi-bars' : 'pi pi-table']" />
+                                </template>
+                            </SelectButton>
+                        </div>
+                    </template>
+                    <!-- Diseño en formato lista -->
+                    <template #list="slotProps">
+                        <div class="flex flex-col">
+                            <div v-for="(cliente) in slotProps.items" :key="cliente.KUNNR">
+                                <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4"
+                                    :class="{ 'border-t border-surface': index !== 0 }">
+                                    <div class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6">
+                                        <div class="flex flex-row md:flex-col justify-between items-start gap-2">
+                                            <div>
+
+                                                <div class="text-lg font-medium mt-2">{{ cliente.NAME1 }}</div>
+                                                <span
+                                                    class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
+                                                        cliente.NAME2 }}</span>
+                                            </div>
+                                            <div class="bg-surface-100 p-1" style="border-radius: 30px">
+                                                <div class="bg-surface-0 flex items-center gap-2 justify-center py-1 px-2"
+                                                    style="
+                                                    border-radius: 30px;
+                                                    box-shadow:
+                                                        0px 1px 2px 0px rgba(0, 0, 0, 0.04),
+                                                        0px 1px 2px 0px rgba(0, 0, 0, 0.06);
+                                                ">
+                                                    <span class="text-surface-900 font-medium text-sm">Direccion: {{
+                                                        cliente.STRAS
+                                                        }}</span>
+                                                    <i class="pi pi-map text-500"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-col md:items-end gap-8">
+                                            <div class="flex flex-row-reverse md:flex-row gap-2">
+                                                <Button icon="pi pi-shopping-cart" label="Mas"
+                                                    class="flex-auto md:flex-initial whitespace-nowrap"></Button>
+                                                <Button icon="pi pi-shopping-cart" label="Visitar"
+                                                    class="flex-auto md:flex-initial whitespace-nowrap"></Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Diseño en formato grid -->
+                    <template #grid="slotProps">
+                        <div class="grid grid-cols-12 gap-4">
+                            <div v-for="(cliente) in slotProps.items" :key="cliente.KUNNR"
+                                class="col-span-12 sm:col-span-6 lg:col-span-4 p-2">
+                                <div
+                                    class="p-6 border border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-900 rounded flex flex-col">
+                                    <div class="flex flex-row justify-between items-start gap-2">
+                                        <div>
+                                            <span class="text-2xl font-semibold">{{ cliente.NAME1 }}</span>
+                                            <div class="text-lg font-medium mt-1">{{ cliente.NAME2 }}</div>
+                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
+                                                cliente.STRAS }}</span>
+                                        </div>
+
+                                    </div>
+                                    <div class="flex flex-col gap-6 mt-6">
+                                        <div class="flex gap-2">
+                                            <Button icon="pi pi-shopping-cart" label="Mas"
+                                                class="flex-auto whitespace-nowrap"></Button>
+                                            <Button icon="pi pi-shopping-cart" label="Visitar"
+                                                class="flex-auto whitespace-nowrap"></Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </DataView>
             </div>
+
+            <!-- Mensaje si no hay clientes cargados -->
             <div v-else class="text-xl mt-4">
                 No hay clientes cargados.
             </div>
         </div>
     </div>
+
 </template>

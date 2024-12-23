@@ -7,7 +7,12 @@ const model = ref([
     {
         label: 'Home',
         items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', to: { name: 'dashboard' } }]
-    }
+    },
+    {
+        label: 'Clientes',
+        items: [{ label: 'Clientes', icon: 'pi pi-fw pi-users', to: { name: 'clientes' } }]
+    },
+    
 ]);
 </script>
 
