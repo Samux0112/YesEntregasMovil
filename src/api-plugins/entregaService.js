@@ -29,5 +29,6 @@ export const getLogs = async () => {
   } catch (error) {
     console.error('Error al obtener los logs: ', error);
     return []; // En caso de error, retornar un arreglo vacío
+    
   }
 };
