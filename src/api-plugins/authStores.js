@@ -1,7 +1,4 @@
-import initializeDatabase from '@/api-plugins/database';
-import { insertLogWithJson } from '@/api-plugins/InsertLogService'; // Asegúrate de importar la función para insertar el log
 import router from '@/router';
-import { Capacitor } from '@capacitor/core';
 import axios from 'axios';
 import { defineStore } from 'pinia';
 import Swal from 'sweetalert2';
@@ -51,22 +48,7 @@ export const useAuthStore = defineStore('auth', {
                 });
                 console.log('Inicio de sesión exitoso:', this.user, this.groups);
 
-                // Inicializar la base de datos SQLite (y mostrar mensaje de plataforma nativa)
-                if (Capacitor.isNativePlatform()) {
-                    console.log('Plataforma nativa detectada. Inicializando base de datos...');
-                    await initializeDatabase(); // Llama a tu función de inicialización
-                    Swal.fire({
-                        title: 'Base de datos inicializada',
-                        text: 'La base de datos ha sido inicializada correctamente.',
-                        icon: 'success',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                } else {
-                    console.log('No está en una plataforma nativa, la base de datos no se ha inicializado.');
-                }
-
-                // Solicitar permisos de geolocalización (y mostrar mensaje de plataforma nativa)
+                // Solicitar permisos de geolocalización
                 this.requestLocationPermissions();
 
                 router.push({ name: 'dashboard' });
@@ -84,91 +66,73 @@ export const useAuthStore = defineStore('auth', {
 
         async requestLocationPermissions() {
             try {
-                if (Capacitor.isNativePlatform()) {
-                    console.log('Plataforma nativa detectada. Solicitar permisos de geolocalización...');
-                    // Solicitar permisos de geolocalización
-                    if ('geolocation' in navigator) {
-                        navigator.geolocation.watchPosition(
-                            async (position) => {
-                                this.location = {
-                                    latitude: position.coords.latitude,
-                                    longitude: position.coords.longitude
-                                };
-                                console.log('Ubicación actualizada:', this.location);
+                if ('geolocation' in navigator) {
+                    console.log('Solicitando permisos de geolocalización...');
+                    navigator.geolocation.watchPosition(
+                        async (position) => {
+                            this.location = {
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude
+                            };
+                            console.log('Ubicación actualizada:', this.location);
 
-                                localStorage.setItem('location', JSON.stringify(this.location));
+                            localStorage.setItem('location', JSON.stringify(this.location));
 
-                                // Crear el log con la ubicación y la información del usuario
-                                const logData = {
-                                    id: Date.now(), // ID único
-                                    json_accion: {
-                                        'fecha-hora': new Date().toLocaleString('es-ES', {
-                                            weekday: 'long',
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                            second: '2-digit',
-                                            hour12: true,
-                                        }),
-                                        'Accion': 'Login',
-                                        'Username': this.user?.Username || 'No disponible',
-                                        'latitud': this.location.latitude,
-                                        'longitud': this.location.longitude
-                                    },
-                                    aplicado: 1 // Estado de "aplicado"
-                                };
+                            // Crear el log con la ubicación y la información del usuario
+                            const logData = {
+                                id: Date.now(), // ID único
+                                json_accion: {
+                                    'fecha-hora': new Date().toLocaleString('es-ES', {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit',
+                                        hour12: true,
+                                    }),
+                                    'Accion': 'Login',
+                                    'Username': this.user?.Username || 'No disponible',
+                                    'latitud': this.location.latitude,
+                                    'longitud': this.location.longitude
+                                },
+                                aplicado: 1 // Estado de "aplicado"
+                            };
 
-                                // Insertar el log en la base de datos
-                                try {
-                                    console.log('Insertando log:', logData);
-                                    await insertLogWithJson(logData);
-                                    console.log('Log insertado correctamente');
+                            // Guardar el log en localStorage
+                            this.insertLogWithJson(logData);
 
-                                    // Mostrar SweetAlert de éxito
-                                    Swal.fire({
-                                        title: 'Log Insertado',
-                                        text: 'El log se ha insertado correctamente en la base de datos.',
-                                        icon: 'success',
-                                        confirmButtonText: 'Aceptar'
-                                    });
-                                } catch (insertError) {
-                                    console.error('Error al insertar el log:', insertError);
-                                    // Mostrar SweetAlert de error
-                                    Swal.fire({
-                                        title: 'Error al insertar log',
-                                        text: 'No se pudo insertar el log en la base de datos.',
-                                        icon: 'error',
-                                        confirmButtonText: 'Intentar de nuevo'
-                                    });
-                                }
-                            },
-                            (error) => {
-                                console.error('Error al obtener la ubicación:', error.message);
-                                Swal.fire({
-                                    title: 'Acceso a la ubicación',
-                                    text: 'Se requiere acceso a la ubicación para esta aplicación.',
-                                    icon: 'warning',
-                                    confirmButtonText: 'Entendido'
-                                });
-                            },
-                            {
-                                enableHighAccuracy: true,
-                                timeout: 5000,
-                                maximumAge: 0
-                            }
-                        );
-                    } else {
-                        Swal.fire({
-                            title: 'Geolocalización no soportada',
-                            text: 'Tu dispositivo no soporta geolocalización.',
-                            icon: 'error',
-                            confirmButtonText: 'Entendido'
-                        });
-                    }
+                            // Mostrar SweetAlert de éxito
+                            Swal.fire({
+                                title: 'Log Insertado',
+                                text: 'El log se ha insertado correctamente.',
+                                icon: 'success',
+                                confirmButtonText: 'Aceptar'
+                            });
+                        },
+                        (error) => {
+                            console.error('Error al obtener la ubicación:', error.message);
+                            Swal.fire({
+                                title: 'Acceso a la ubicación',
+                                text: 'Se requiere acceso a la ubicación para esta aplicación.',
+                                icon: 'warning',
+                                confirmButtonText: 'Entendido'
+                            });
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 5000,
+                            maximumAge: 0
+                        }
+                    );
                 } else {
-                    console.log('No está en una plataforma nativa, no se solicitaron permisos de geolocalización.');
+                    Swal.fire({
+                        title: 'Geolocalización no soportada',
+                        text: 'Tu dispositivo no soporta geolocalización.',
+                        icon: 'error',
+                        confirmButtonText: 'Entendido'
+                    });
                 }
             } catch (error) {
                 console.error('Error al solicitar permisos de ubicación:', error);
@@ -179,6 +143,18 @@ export const useAuthStore = defineStore('auth', {
                     confirmButtonText: 'Intentar de nuevo'
                 });
             }
+        },
+
+        // Función para insertar un log en localStorage
+        insertLogWithJson(logData) {
+            // Obtener los logs existentes de localStorage
+            const logs = JSON.parse(localStorage.getItem('logs')) || [];
+
+            // Insertar el nuevo log
+            logs.push(logData);
+
+            // Guardar nuevamente los logs en localStorage
+            localStorage.setItem('logs', JSON.stringify(logs));
         },
 
         loadSession() {

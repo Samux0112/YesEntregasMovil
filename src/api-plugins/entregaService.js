@@ -1,22 +1,28 @@
-import { CapacitorSQLite } from '@capacitor-community/sqlite'; // Usa este nombre correcto
+import Swal from 'sweetalert2';
 
-export const getLogs = async () => {
+export const getLogsFromLocalStorage = () => {
   try {
-    const db = await CapacitorSQLite.create({
-      name: 'yesentregas',
-      location: 'default',
-    });
-    await db.open();
+    // Obtener los logs del localStorage
+    const logs = JSON.parse(localStorage.getItem('logs')) || [];
 
-    const query = 'SELECT * FROM log';  // Consulta simple para obtener todos los logs
-    const result = await db.executeSql(query);
+    if (logs.length === 0) {
+      console.log('No se encontraron registros en localStorage.');
+      return [];
+    }
 
-    // No hace falta convertirlo a array, directamente lo retornamos
-    const logs = result.rows;  // Solo retornamos las filas tal como están
-    db.close(); // Asegúrate de cerrar la base de datos después de la consulta
-    return logs;
+    console.log('Logs obtenidos:', logs);
+    return logs; // Retorna los logs como un array de objetos
   } catch (error) {
-    console.error('Error al cargar los logs:', error);
-    throw error;
+    console.error('Error al obtener los logs:', error.message);
+
+    // Alerta en caso de error
+    Swal.fire({
+      title: 'Error',
+      text: `No se pudo obtener los registros. Detalles: ${error.message}`,
+      icon: 'error',
+      confirmButtonText: 'Intentar de nuevo',
+    });
+
+    throw error; // Relanzar el error si es necesario manejarlo en otro lugar
   }
 };
