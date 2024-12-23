@@ -1,16 +1,9 @@
 <script setup>
-import Button from 'primevue/button';
-import InputText from 'primevue/inputtext';
 import { onMounted, ref } from 'vue';
 import { getLogsFromLocalStorage } from '../api-plugins/entregaService'; // Ajusta la ruta según corresponda
 
 // Referencia para los logs
 const logs = ref([]); // Estado para almacenar los logs obtenidos
-
-// Filtros inicializados
-const filters = ref({
-  global: { value: '', matchMode: 'contains' },
-});
 
 // Función para cargar los logs desde localStorage
 const cargarLogs = async () => {
@@ -27,11 +20,6 @@ const cargarLogs = async () => {
 onMounted(async () => {
   await cargarLogs();
 });
-
-// Limpiar filtros
-const clearFilter = () => {
-  filters.value.global.value = ''; // Limpiar solo el filtro global
-};
 </script>
 
 <template>
@@ -43,15 +31,11 @@ const clearFilter = () => {
       :rows="10"
       dataKey="id"
       :rowHover="true"
-      :globalFilter="filters['global'].value"
       showGridlines
     >
       <template #header>
         <div class="flex justify-between">
-          <Button type="button" icon="pi pi-filter-slash" label="Limpiar filtro" outlined @click="clearFilter" />
-          <div>
-            <InputText v-model="filters['global'].value" placeholder="Buscar palabra clave" />
-          </div>
+          <!-- Eliminar el botón y campo de búsqueda -->
         </div>
       </template>
       <template #empty>No se encontraron registros.</template>
@@ -63,7 +47,7 @@ const clearFilter = () => {
           {{ index + 1 }}
         </template>
       </Column>
-      
+
       <!-- Acción (mostrar 'login') -->
       <Column field="accion" header="Acción" style="min-width: 10rem">
         <template #body="{ data }">
@@ -84,7 +68,7 @@ const clearFilter = () => {
           <pre>{{ data.json_accion ? data.json_accion : 'No disponible' }}</pre>
         </template>
       </Column>
-      
+
     </DataTable>
   </div>
 </template>
