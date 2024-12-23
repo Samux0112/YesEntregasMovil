@@ -1,4 +1,6 @@
 <script setup>
+import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
 import { onMounted, ref } from 'vue';
 import { getLogsFromLocalStorage } from '../api-plugins/entregaService'; // Ajusta la ruta según corresponda
 
@@ -20,70 +22,87 @@ const cargarLogs = async () => {
 onMounted(async () => {
   await cargarLogs();
 });
+
+// Filtros
+const filters = ref({
+  global: { value: '', matchMode: 'contains' },
+  accion: { value: '', matchMode: 'contains' },
+  aplicado: { value: '', matchMode: 'contains' },
+});
+
+const loading = ref(false);
+
+// Limpiar filtros
+const clearFilter = () => {
+  filters.value = {
+    global: { value: '', matchMode: 'contains' },
+    accion: { value: '', matchMode: 'contains' },
+    aplicado: { value: '', matchMode: 'contains' },
+  };
+};
 </script>
 
 <template>
-  <div class="grid grid-cols-12 gap-8">
-    <div class="col-span-12 text-center">
-      <h1 class="text-3xl font-bold">Logs de Actividad</h1>
+  <div class="card">
+    <div class="font-semibold text-xl mb-4">Logs</div>
+    <DataTable
+      :value="logs"
+      :paginator="true"
+      :rows="10"
+      dataKey="id"
+      :rowHover="true"
+      v-model:filters="filters"
+      filterDisplay="menu"
+      :loading="loading"
+      :filters="filters"
+      :globalFilterFields="['accion', 'aplicado']"
+      showGridlines
+    >
+      <template #header>
+        <div class="flex justify-between">
+          <Button type="button" icon="pi pi-filter-slash" label="Limpiar filtro" outlined @click="clearFilter" />
+          <div>
+            <InputText v-model="filters['global'].value" placeholder="Buscar palabra clave" />
+          </div>
+        </div>
+      </template>
+      <template #empty>No se encontraron registros.</template>
+      <template #loading>Cargando logs, por favor espere.</template>
+      
+      <Column field="id" header="ID" style="min-width: 6rem">
+        <template #body="{ data }">
+          {{ data.id }}
+        </template>
+      </Column>
+      
+      <Column field="accion" header="Acción" style="min-width: 10rem">
+        <template #body="{ data }">
+          {{ data.accion }}
+        </template>
+      </Column>
 
-      <!-- Si hay logs, los mostramos en la tabla -->
-      <div v-if="logs.length > 0">
-        <table class="min-w-full table-auto border-collapse">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="border p-2">ID</th>
-              <th class="border p-2">Acción</th>
-              <th class="border p-2">Aplicado</th>
-              <th class="border p-2">JSON Completo</th> <!-- Nueva columna para mostrar el JSON completo -->
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="log in logs" :key="log.id">
-              <td class="border p-2">{{ log.id }}</td>
-              <td class="border p-2">
-                <!-- Solo hacemos JSON.parse si es necesario -->
-                {{ typeof log.json_accion === 'string' ? JSON.parse(log.json_accion).accion : log.json_accion.accion }}
-              </td>
-              <td class="border p-2">{{ log.aplicado }}</td>
-              <td class="border p-2">
-                <!-- Mostramos el JSON completo usando JSON.stringify -->
-                <pre>{{ JSON.stringify(log, null, 2) }}</pre>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <Column field="aplicado" header="Aplicado" style="min-width: 10rem">
+        <template #body="{ data }">
+          {{ data.aplicado }}
+        </template>
+      </Column>
 
-      <!-- Si no hay logs, mostramos un mensaje -->
-      <div v-else>
-        <p>No se han encontrado logs.</p>
-      </div>
-    </div>
+      <Column field="jsonCompleto" header="JSON Completo" style="min-width: 20rem">
+        <template #body="{ data }">
+          <pre>{{ data.jsonCompleto }}</pre>
+        </template>
+      </Column>
+      
+    </DataTable>
   </div>
 </template>
 
-<style scoped>
-table {
-  width: 100%;
-  border-collapse: collapse;
+<style scoped lang="scss">
+:deep(.p-datatable-frozen-tbody) {
+  font-weight: bold;
 }
 
-th, td {
-  text-align: left;
-  padding: 12px;
-  border: 1px solid #ddd;
-}
-
-th {
-  background-color: #f4f4f4;
-}
-
-pre {
-  white-space: pre-wrap; /* Permite que el JSON largo se ajuste al tamaño de la celda */
-  word-wrap: break-word; /* Para evitar desbordes */
-  background-color: #f0f0f0; /* Fondo gris para resaltar el JSON */
-  padding: 10px;
-  border-radius: 4px;
+:deep(.p-datatable-scrollable .p-frozen-column) {
+  font-weight: bold;
 }
 </style>
