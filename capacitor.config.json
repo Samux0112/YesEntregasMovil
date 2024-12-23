@@ -11,10 +11,6 @@
       "iosDatabaseLocation": "Library",
       "androidDatabaseLocation": "default"
     }
-  },
-  "server": {
-  "url": "http://192.168.1.156:3000", 
-  "cleartext": true
-}
+  }
 
 }
