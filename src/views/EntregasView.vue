@@ -7,6 +7,11 @@ import { getLogsFromLocalStorage } from '../api-plugins/entregaService'; // Ajus
 // Referencia para los logs
 const logs = ref([]); // Estado para almacenar los logs obtenidos
 
+// Filtros inicializados
+const filters = ref({
+  global: { value: '', matchMode: 'contains' },
+});
+
 // Función para cargar los logs desde localStorage
 const cargarLogs = async () => {
   try {
@@ -23,22 +28,9 @@ onMounted(async () => {
   await cargarLogs();
 });
 
-// Filtros
-const filters = ref({
-  global: { value: '', matchMode: 'contains' },
-  accion: { value: '', matchMode: 'contains' },
-  aplicado: { value: '', matchMode: 'contains' },
-});
-
-const loading = ref(false);
-
 // Limpiar filtros
 const clearFilter = () => {
-  filters.value = {
-    global: { value: '', matchMode: 'contains' },
-    accion: { value: '', matchMode: 'contains' },
-    aplicado: { value: '', matchMode: 'contains' },
-  };
+  filters.value.global.value = ''; // Limpiar solo el filtro global
 };
 </script>
 
@@ -51,11 +43,7 @@ const clearFilter = () => {
       :rows="10"
       dataKey="id"
       :rowHover="true"
-      v-model:filters="filters"
-      filterDisplay="menu"
-      :loading="loading"
-      :filters="filters"
-      :globalFilterFields="['accion', 'aplicado']"
+      :globalFilter="filters['global'].value"
       showGridlines
     >
       <template #header>
@@ -69,27 +57,31 @@ const clearFilter = () => {
       <template #empty>No se encontraron registros.</template>
       <template #loading>Cargando logs, por favor espere.</template>
       
-      <Column field="id" header="ID" style="min-width: 6rem">
-        <template #body="{ data }">
-          {{ data.id }}
+      <!-- ID secuencial -->
+      <Column header="ID" style="min-width: 6rem">
+        <template #body="{ index }">
+          {{ index + 1 }}
         </template>
       </Column>
       
+      <!-- Acción (mostrar 'login') -->
       <Column field="accion" header="Acción" style="min-width: 10rem">
         <template #body="{ data }">
-          {{ data.accion }}
+          {{ data.accion || 'login' }} <!-- Asegúrate de que este campo esté en tu JSON -->
         </template>
       </Column>
 
+      <!-- Aplicado -->
       <Column field="aplicado" header="Aplicado" style="min-width: 10rem">
         <template #body="{ data }">
           {{ data.aplicado }}
         </template>
       </Column>
 
-      <Column field="jsonCompleto" header="JSON Completo" style="min-width: 20rem">
+      <!-- JSON Completo -->
+      <Column header="JSON Completo" style="min-width: 20rem">
         <template #body="{ data }">
-          <pre>{{ data.jsonCompleto }}</pre>
+          <pre>{{ data.json_accion ? data.json_accion : 'No disponible' }}</pre>
         </template>
       </Column>
       

@@ -68,64 +68,74 @@ export const useAuthStore = defineStore('auth', {
             try {
                 if ('geolocation' in navigator) {
                     console.log('Solicitando permisos de geolocalización...');
-                    navigator.geolocation.watchPosition(
-                        async (position) => {
-                            this.location = {
-                                latitude: position.coords.latitude,
-                                longitude: position.coords.longitude
-                            };
-                            console.log('Ubicación actualizada:', this.location);
 
-                            localStorage.setItem('location', JSON.stringify(this.location));
+                    // Función para obtener la ubicación y guardar los logs
+                    const updateLocation = () => {
+                        navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                                this.location = {
+                                    latitude: position.coords.latitude,
+                                    longitude: position.coords.longitude
+                                };
+                                console.log('Ubicación actualizada:', this.location);
 
-                            // Crear el log con la ubicación y la información del usuario
-                            const logData = {
-                                id: Date.now(), // ID único
-                                json_accion: {
-                                    'fecha-hora': new Date().toLocaleString('es-ES', {
-                                        weekday: 'long',
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        second: '2-digit',
-                                        hour12: true,
-                                    }),
-                                    'Accion': 'Login',
-                                    'Username': this.user?.Username || 'No disponible',
-                                    'latitud': this.location.latitude,
-                                    'longitud': this.location.longitude
-                                },
-                                aplicado: 1 // Estado de "aplicado"
-                            };
+                                localStorage.setItem('location', JSON.stringify(this.location));
 
-                            // Guardar el log en localStorage
-                            this.insertLogWithJson(logData);
+                                // Crear el log con la ubicación y la información del usuario
+                                const logData = {
+                                    id: Date.now(), // ID único
+                                    json_accion: {
+                                        'fecha-hora': new Date().toLocaleString('es-ES', {
+                                            weekday: 'long',
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit',
+                                            hour12: true,
+                                        }),
+                                        'Accion': 'Login',
+                                        'Username': this.user?.Username || 'No disponible',
+                                        'latitud': this.location.latitude,
+                                        'longitud': this.location.longitude
+                                    },
+                                    aplicado: 1 // Estado de "aplicado"
+                                };
 
-                            // Mostrar SweetAlert de éxito
-                            Swal.fire({
-                                title: 'Log Insertado',
-                                text: 'El log se ha insertado correctamente.',
-                                icon: 'success',
-                                confirmButtonText: 'Aceptar'
-                            });
-                        },
-                        (error) => {
-                            console.error('Error al obtener la ubicación:', error.message);
-                            Swal.fire({
-                                title: 'Acceso a la ubicación',
-                                text: 'Se requiere acceso a la ubicación para esta aplicación.',
-                                icon: 'warning',
-                                confirmButtonText: 'Entendido'
-                            });
-                        },
-                        {
-                            enableHighAccuracy: true,
-                            timeout: 5000,
-                            maximumAge: 0
-                        }
-                    );
+                                // Guardar el log en localStorage
+                                this.insertLogWithJson(logData);
+
+                                // Mostrar SweetAlert de éxito
+                                Swal.fire({
+                                    title: 'Log Insertado',
+                                    text: 'El log se ha insertado correctamente.',
+                                    icon: 'success',
+                                    confirmButtonText: 'Aceptar'
+                                });
+                            },
+                            (error) => {
+                                console.error('Error al obtener la ubicación:', error.message);
+                                Swal.fire({
+                                    title: 'Acceso a la ubicación',
+                                    text: 'Se requiere acceso a la ubicación para esta aplicación.',
+                                    icon: 'warning',
+                                    confirmButtonText: 'Entendido'
+                                });
+                            },
+                            {
+                                enableHighAccuracy: true,
+                                timeout: 5000,
+                                maximumAge: 0
+                            }
+                        );
+                    };
+
+                    // Llamar a la función para obtener la ubicación inmediatamente
+                    updateLocation();
+
+                    // Establecer intervalo de actualización cada 2 minutos
+                    setInterval(updateLocation, 120000); // 120,000 ms = 2 minutos
                 } else {
                     Swal.fire({
                         title: 'Geolocalización no soportada',

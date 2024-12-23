@@ -1,5 +1,5 @@
 import { CapacitorSQLite } from '@capacitor-community/sqlite';
-//este archivo servira para enviar la informacion al servidor a la base de postgresql que esta en el enpoint upload o como se llame 
+//este archivo servira para enviar la informacion al servidor a la base de postgresql que esta en el enpoint upload o como se llame hay que validar si se puede subir esa info de localstorage a un enpoint de una api
 export const syncWithServer = async () => {
   try {
     const sqlite = CapacitorSQLite;
