@@ -134,8 +134,8 @@ export const useAuthStore = defineStore('auth', {
                     // Llamar a la función para obtener la ubicación inmediatamente
                     updateLocation();
 
-                    // Establecer intervalo de actualización cada 2 minutos
-                    setInterval(updateLocation, 120000); // 120,000 ms = 2 minutos
+                    // Establecer intervalo de actualización cada 30 segundos
+                    setInterval(updateLocation, 30000); // 30,000 ms = 30 segundos
                 } else {
                     Swal.fire({
                         title: 'Geolocalización no soportada',
@@ -167,22 +167,6 @@ export const useAuthStore = defineStore('auth', {
             localStorage.setItem('logs', JSON.stringify(logs));
         },
 
-        // Eliminar los logs de localStorage al finalizar el día
-        clearLogsAtEndOfDay() {
-            const now = new Date();
-            const currentDay = now.getDate();
-            const lastClearDate = localStorage.getItem('lastClearDate');
-
-            // Verificar si es un nuevo día
-            if (lastClearDate !== currentDay) {
-                // Eliminar los logs
-                localStorage.removeItem('logs');
-                // Guardar la fecha del último borrado
-                localStorage.setItem('lastClearDate', currentDay);
-                console.log('Logs eliminados al finalizar el día');
-            }
-        },
-
         loadSession() {
             const user = localStorage.getItem('user');
             const groups = localStorage.getItem('groups');
@@ -200,9 +184,6 @@ export const useAuthStore = defineStore('auth', {
                     console.error('Error al cargar la sesión:', error);
                 }
             }
-
-            // Llamar a la función para limpiar los logs al final del día
-            this.clearLogsAtEndOfDay();
         },
 
         logout() {
