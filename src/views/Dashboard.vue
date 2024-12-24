@@ -1,7 +1,6 @@
 <script setup>
 import { useAuthStore } from '@/api-plugins/authStores';
 import axios from 'axios';
-import Swal from 'sweetalert2';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router'; // Importar el router
 
@@ -89,23 +88,7 @@ const obtenerUbicacion = async () => {
                     };
                     console.log('Ubicación obtenida:', authStore.location);
                 },
-                (error) => {
-                    console.error('Error al obtener la ubicación:', error.message);
-                    Swal.fire({
-                        title: 'Acceso a la ubicación',
-                        text: 'Se requiere acceso a la ubicación para esta aplicación.',
-                        icon: 'warning',
-                        confirmButtonText: 'Entendido'
-                    });
-                }
             );
-        } else {
-            Swal.fire({
-                title: 'Geolocalización no soportada',
-                text: 'Tu dispositivo no soporta geolocalización.',
-                icon: 'error',
-                confirmButtonText: 'Entendido'
-            });
         }
     } catch (error) {
         console.error('Error al obtener la ubicación:', error);
