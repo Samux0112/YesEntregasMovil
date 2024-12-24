@@ -8,28 +8,32 @@ export const useAuthStore = defineStore('auth', {
         user: null,
         groups: [],
         error: null,
-        location: null
+        location: null,
+        token: null, // Almacena el token
     }),
 
     actions: {
         async login(username, password) {
             try {
                 // Solicitar autenticación en la API
-                const response = await axios.post('https://yesentregas-api.yes.com.sv/auth/', {
+                const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/auth/', {
                     username,
                     password,
                     country: 'sv'
                 });
 
                 // Verificar respuesta
-                if (!response.data.user_data || !response.data.groups) {
-                    throw new Error('Credenciales incorrectas.');
+                if (!response.data.user?.user_data || !response.data.user?.groups || !response.data.token?.access_token) {
+                    throw new Error('Credenciales incorrectas o falta de información en la respuesta.');
                 }
 
-                this.user = response.data.user_data;
-                this.groups = response.data.groups;
+                // Guardar usuario, grupos y token en el estado
+                this.user = response.data.user.user_data;
+                this.groups = response.data.user.groups;
+                this.token = response.data.token.access_token;
                 this.error = null;
 
+                // Verificar si el usuario tiene los permisos necesarios
                 const hasRequiredGroup = this.groups.includes('YesEntregas-Entregador');
                 if (!hasRequiredGroup) {
                     throw new Error('No tienes los permisos necesarios para acceder a este sistema.');
@@ -38,6 +42,10 @@ export const useAuthStore = defineStore('auth', {
                 // Guardar en localStorage
                 localStorage.setItem('user', JSON.stringify(this.user));
                 localStorage.setItem('groups', JSON.stringify(this.groups));
+                localStorage.setItem('token', this.token);
+
+                // Configurar el token en las solicitudes de Axios
+                this.setAxiosToken(this.token);
 
                 // Alerta de inicio de sesión exitoso
                 Swal.fire({
@@ -46,7 +54,6 @@ export const useAuthStore = defineStore('auth', {
                     timer: 2000,
                     showConfirmButton: false
                 });
-                console.log('Inicio de sesión exitoso:', this.user, this.groups);
 
                 // Solicitar permisos de geolocalización
                 this.requestLocationPermissions();
@@ -64,121 +71,29 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
-        async requestLocationPermissions() {
-            try {
-                if ('geolocation' in navigator) {
-                    console.log('Solicitando permisos de geolocalización...');
-
-                    // Función para obtener la ubicación y guardar los logs
-                    const updateLocation = () => {
-                        navigator.geolocation.getCurrentPosition(
-                            (position) => {
-                                this.location = {
-                                    latitude: position.coords.latitude,
-                                    longitude: position.coords.longitude
-                                };
-                                console.log('Ubicación actualizada:', this.location);
-
-                                localStorage.setItem('location', JSON.stringify(this.location));
-
-                                // Crear el log con la ubicación y la información del usuario
-                                const logData = {
-                                    id: Date.now(), // ID único
-                                    json_accion: {
-                                        'fecha-hora': new Date().toLocaleString('es-ES', {
-                                            weekday: 'long',
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                            second: '2-digit',
-                                            hour12: true,
-                                        }),
-                                        'Accion': 'Login',
-                                        'Username': this.user?.Username || 'No disponible',
-                                        'latitud': this.location.latitude,
-                                        'longitud': this.location.longitude
-                                    },
-                                    aplicado: 1 // Estado de "aplicado"
-                                };
-
-                                // Guardar el log en localStorage
-                                this.insertLogWithJson(logData);
-
-                                // Mostrar SweetAlert de éxito
-                                Swal.fire({
-                                    title: 'Log Insertado',
-                                    text: 'El log se ha insertado correctamente.',
-                                    icon: 'success',
-                                    confirmButtonText: 'Aceptar'
-                                });
-                            },
-                            (error) => {
-                                console.error('Error al obtener la ubicación:', error.message);
-                                Swal.fire({
-                                    title: 'Acceso a la ubicación',
-                                    text: 'Se requiere acceso a la ubicación para esta aplicación.',
-                                    icon: 'warning',
-                                    confirmButtonText: 'Entendido'
-                                });
-                            },
-                            {
-                                enableHighAccuracy: true,
-                                timeout: 5000,
-                                maximumAge: 0
-                            }
-                        );
-                    };
-
-                    // Llamar a la función para obtener la ubicación inmediatamente
-                    updateLocation();
-
-                    // Establecer intervalo de actualización cada 30 segundos
-                    setInterval(updateLocation, 30000); // 30,000 ms = 30 segundos
-                } else {
-                    Swal.fire({
-                        title: 'Geolocalización no soportada',
-                        text: 'Tu dispositivo no soporta geolocalización.',
-                        icon: 'error',
-                        confirmButtonText: 'Entendido'
-                    });
-                }
-            } catch (error) {
-                console.error('Error al solicitar permisos de ubicación:', error);
-                Swal.fire({
-                    title: 'Error al solicitar permisos',
-                    text: 'No se pudo acceder a la ubicación. Asegúrate de habilitar los permisos.',
-                    icon: 'error',
-                    confirmButtonText: 'Intentar de nuevo'
-                });
-            }
-        },
-
-        // Función para insertar un log en localStorage
-        insertLogWithJson(logData) {
-            // Obtener los logs existentes de localStorage
-            const logs = JSON.parse(localStorage.getItem('logs')) || [];
-
-            // Insertar el nuevo log
-            logs.push(logData);
-
-            // Guardar nuevamente los logs en localStorage
-            localStorage.setItem('logs', JSON.stringify(logs));
+        setAxiosToken(token) {
+            // Configura el token en el encabezado Authorization para todas las solicitudes
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         },
 
         loadSession() {
             const user = localStorage.getItem('user');
             const groups = localStorage.getItem('groups');
+            const token = localStorage.getItem('token');
             const location = localStorage.getItem('location');
 
-            if (user && groups) {
+            if (user && groups && token) {
                 try {
                     this.user = JSON.parse(user);
                     this.groups = JSON.parse(groups);
+                    this.token = token;
                     if (location) {
-                        this.location = JSON.parse(location); // Cargar ubicación
+                        this.location = JSON.parse(location);
                     }
+
+                    // Configurar el token en Axios
+                    this.setAxiosToken(this.token);
+
                     console.log('Sesión cargada:', this.user, this.groups, this.location);
                 } catch (error) {
                     console.error('Error al cargar la sesión:', error);
@@ -198,9 +113,14 @@ export const useAuthStore = defineStore('auth', {
                     this.user = null;
                     this.groups = [];
                     this.location = null;
+                    this.token = null;
                     localStorage.removeItem('user');
                     localStorage.removeItem('groups');
+                    localStorage.removeItem('token');
                     localStorage.removeItem('location');
+
+                    // Eliminar el encabezado Authorization
+                    delete axios.defaults.headers.common['Authorization'];
 
                     Swal.fire({
                         title: 'Has cerrado sesión correctamente.',
@@ -215,7 +135,7 @@ export const useAuthStore = defineStore('auth', {
         },
 
         isAuthenticated() {
-            return !!this.user;
+            return !!this.user && !!this.token;
         },
 
         hasGroup(groupName) {

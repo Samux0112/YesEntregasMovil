@@ -70,12 +70,12 @@ onMounted(() => {
 <template>
     <div class="grid grid-cols-12 gap-8">
         <div class="col-span-12">
+            <Button label="Cargar clientes" class="w-auto p-2 text-sm" @click="cargarClientes"></Button>
             <!-- Mostrar clientes en DataView -->
             <div v-if="clientes.length > 0" class="mt-4">
                 <DataView :value="clientes" :layout="layout">
                     <template #header>
-                        <div class="font-semibold text-xl">Clientes</div>
-                        <Button label="Cargar clientes" class="w-auto p-2 text-sm" @click="cargarClientes"></Button>
+                        <div class="font-semibold text-xl">Lista de clientes</div>
                         <div class="flex justify-end">
                             <SelectButton v-model="layout" :options="options" :allowEmpty="false">
                                 <template #option="{ option }">
@@ -109,7 +109,7 @@ onMounted(() => {
                                                 ">
                                                     <span class="text-surface-900 font-medium text-sm">Direccion: {{
                                                         cliente.STRAS
-                                                        }}</span>
+                                                    }}</span>
                                                     <i class="pi pi-map text-500"></i>
                                                 </div>
                                             </div>
@@ -139,8 +139,10 @@ onMounted(() => {
                                         <div>
                                             <span class="text-2xl font-semibold">{{ cliente.NAME1 }}</span>
                                             <div class="text-lg font-medium mt-1">{{ cliente.NAME2 }}</div>
-                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
-                                                cliente.STRAS }}</span>
+                                            <span
+                                                class="font-medium text-surface-500 dark:text-surface-400 text-sm">Direccion:
+                                                {{
+                                                    cliente.STRAS }}</span>
                                         </div>
 
                                     </div>
