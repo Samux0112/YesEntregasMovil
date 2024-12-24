@@ -114,7 +114,7 @@ const obtenerUbicacion = async () => {
 
 // Función para redirigir a la vista de entregas
 const handleEntrega = () => {
-    router.push('/entregas'); // Redirige a la ruta de entregas
+    router.push('/clientes'); // Redirige a la ruta de entregas
 };
 
 // Actualizar la fecha y hora cada segundo
