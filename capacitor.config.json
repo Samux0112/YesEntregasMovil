@@ -6,10 +6,6 @@
   "plugins": {
     "Geolocation": {
       "backgroundPermission": "true"
-    },
-    "SQLite": {
-      "iosDatabaseLocation": "Library",
-      "androidDatabaseLocation": "default"
     }
   }
 

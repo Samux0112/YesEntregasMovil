@@ -2,13 +2,15 @@
 import { useAuthStore } from '@/api-plugins/authStores';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+
 const options = ref(['list', 'grid']);
 const layout = ref('list');
+const searchTerm = ref(''); // Término de búsqueda
+const clientesFiltrados = ref([]); // Clientes filtrados
+
 // Accede al store de autenticación
 const authStore = useAuthStore();
-
-// Obtén el nombre de usuario desde el store
 const username = computed(() => authStore.user?.Username || 'Invitado');
 
 // Estado para los clientes cargados
@@ -18,13 +20,14 @@ const clientes = ref([]);
 const cargarClientes = async () => {
     try {
         const response = await axios.post('https://yesentregas-api.yes.com.sv/clientes/', {
-            sortl: username.value
+            sortl: username.value,
         });
 
         if (response.data && response.data.length > 0) {
             // Guardar los clientes en localStorage
             localStorage.setItem('clientes', JSON.stringify(response.data));
             clientes.value = response.data;
+            clientesFiltrados.value = response.data;
 
             Swal.fire({
                 title: 'Clientes cargados',
@@ -56,24 +59,38 @@ const mostrarClientesGuardados = () => {
     const clientesGuardados = localStorage.getItem('clientes');
     if (clientesGuardados) {
         clientes.value = JSON.parse(clientesGuardados);
+        clientesFiltrados.value = JSON.parse(clientesGuardados);
     }
 };
+
+// Actualiza los clientes filtrados al cambiar el término de búsqueda
+watch(searchTerm, (newQuery) => {
+    clientesFiltrados.value = clientes.value.filter((cliente) =>
+        cliente.NAME1.toLowerCase().includes(newQuery.toLowerCase()) ||
+        cliente.NAME2.toLowerCase().includes(newQuery.toLowerCase())
+    );
+});
 
 // Llamar las funciones al montar el componente
 onMounted(() => {
     mostrarClientesGuardados();
 });
-
-
 </script>
 
 <template>
     <div class="grid grid-cols-12 gap-8">
         <div class="col-span-12">
-            <Button label="Cargar clientes" class="w-auto p-2 text-sm" @click="cargarClientes"></Button>
+            <Button label="Cargar clientes" class="w-auto p-2 text-sm" @click="cargarClientes" />
+
+            <div class="mt-4">
+                <!-- Campo de búsqueda -->
+                <input v-model="searchTerm" type="text" placeholder="Buscar cliente por nombre..."
+                    class="w-full p-2 border rounded mb-4" />
+            </div>
+
             <!-- Mostrar clientes en DataView -->
-            <div v-if="clientes.length > 0" class="mt-4">
-                <DataView :value="clientes" :layout="layout">
+            <div v-if="clientesFiltrados.length > 0" class="mt-4">
+                <DataView :value="clientesFiltrados" :layout="layout">
                     <template #header>
                         <div class="font-semibold text-xl">Lista de clientes</div>
                         <div class="flex justify-end">
@@ -88,28 +105,21 @@ onMounted(() => {
                     <template #list="slotProps">
                         <div class="flex flex-col">
                             <div v-for="(cliente) in slotProps.items" :key="cliente.KUNNR">
-                                <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4"
-                                    :class="{ 'border-t border-surface': index !== 0 }">
+                                <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4">
                                     <div class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6">
                                         <div class="flex flex-row md:flex-col justify-between items-start gap-2">
                                             <div>
-
                                                 <div class="text-lg font-medium mt-2">{{ cliente.NAME1 }}</div>
                                                 <span
-                                                    class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
-                                                        cliente.NAME2 }}</span>
+                                                    class="font-medium text-surface-500 dark:text-surface-400 text-sm">
+                                                    {{ cliente.NAME2 }}
+                                                </span>
                                             </div>
                                             <div class="bg-surface-100 p-1" style="border-radius: 30px">
                                                 <div class="bg-surface-0 flex items-center gap-2 justify-center py-1 px-2"
-                                                    style="
-                                                    border-radius: 30px;
-                                                    box-shadow:
-                                                        0px 1px 2px 0px rgba(0, 0, 0, 0.04),
-                                                        0px 1px 2px 0px rgba(0, 0, 0, 0.06);
-                                                ">
+                                                    style="border-radius: 30px;">
                                                     <span class="text-surface-900 font-medium text-sm">Direccion: {{
-                                                        cliente.STRAS
-                                                    }}</span>
+                                                        cliente.STRAS }}</span>
                                                     <i class="pi pi-map text-500"></i>
                                                 </div>
                                             </div>
@@ -117,9 +127,9 @@ onMounted(() => {
                                         <div class="flex flex-col md:items-end gap-8">
                                             <div class="flex flex-row-reverse md:flex-row gap-2">
                                                 <Button icon="pi pi-th-large" label="Mas"
-                                                    class="flex-auto md:flex-initial whitespace-nowrap"></Button>
+                                                    class="flex-auto md:flex-initial whitespace-nowrap" />
                                                 <Button icon="pi pi-briefcase" label="Visitar"
-                                                    class="flex-auto md:flex-initial whitespace-nowrap"></Button>
+                                                    class="flex-auto md:flex-initial whitespace-nowrap" />
                                             </div>
                                         </div>
                                     </div>
@@ -127,7 +137,6 @@ onMounted(() => {
                             </div>
                         </div>
                     </template>
-
                     <!-- Diseño en formato grid -->
                     <template #grid="slotProps">
                         <div class="grid grid-cols-12 gap-4">
@@ -141,17 +150,15 @@ onMounted(() => {
                                             <div class="text-lg font-medium mt-1">{{ cliente.NAME2 }}</div>
                                             <span
                                                 class="font-medium text-surface-500 dark:text-surface-400 text-sm">Direccion:
-                                                {{
-                                                    cliente.STRAS }}</span>
+                                                {{ cliente.STRAS }}</span>
                                         </div>
-
                                     </div>
                                     <div class="flex flex-col gap-6 mt-6">
                                         <div class="flex gap-2">
                                             <Button icon="pi pi-th-large" label="Mas"
-                                                class="flex-auto whitespace-nowrap"></Button>
+                                                class="flex-auto whitespace-nowrap" />
                                             <Button icon="pi pi-briefcase" label="Visitar"
-                                                class="flex-auto whitespace-nowrap"></Button>
+                                                class="flex-auto whitespace-nowrap" />
                                         </div>
                                     </div>
                                 </div>
@@ -162,10 +169,7 @@ onMounted(() => {
             </div>
 
             <!-- Mensaje si no hay clientes cargados -->
-            <div v-else class="text-xl mt-4">
-                No hay clientes cargados.
-            </div>
+            <div v-else class="text-xl mt-4">No hay clientes cargados.</div>
         </div>
     </div>
-
 </template>

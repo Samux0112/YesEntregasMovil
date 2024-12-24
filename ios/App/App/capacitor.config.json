@@ -1,0 +1,23 @@
+{
+	"appId": "com.yes.entregas",
+	"appName": "Yes-entregas",
+	"webDir": "dist",
+	"bundledWebRuntime": false,
+	"plugins": {
+		"Geolocation": {
+			"backgroundPermission": "true"
+		},
+		"SQLite": {
+			"iosDatabaseLocation": "Library",
+			"androidDatabaseLocation": "default"
+		}
+	},
+	"packageClassList": [
+		"AppPlugin",
+		"FilesystemPlugin",
+		"GeolocationPlugin",
+		"HapticsPlugin",
+		"KeyboardPlugin",
+		"StatusBarPlugin"
+	]
+}
