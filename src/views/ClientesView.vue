@@ -116,9 +116,9 @@ onMounted(() => {
                                         </div>
                                         <div class="flex flex-col md:items-end gap-8">
                                             <div class="flex flex-row-reverse md:flex-row gap-2">
-                                                <Button icon="pi pi-shopping-cart" label="Mas"
+                                                <Button icon="pi pi-th-large" label="Mas"
                                                     class="flex-auto md:flex-initial whitespace-nowrap"></Button>
-                                                <Button icon="pi pi-shopping-cart" label="Visitar"
+                                                <Button icon="pi pi-briefcase" label="Visitar"
                                                     class="flex-auto md:flex-initial whitespace-nowrap"></Button>
                                             </div>
                                         </div>
@@ -146,9 +146,9 @@ onMounted(() => {
                                     </div>
                                     <div class="flex flex-col gap-6 mt-6">
                                         <div class="flex gap-2">
-                                            <Button icon="pi pi-shopping-cart" label="Mas"
+                                            <Button icon="pi pi-th-large" label="Mas"
                                                 class="flex-auto whitespace-nowrap"></Button>
-                                            <Button icon="pi pi-shopping-cart" label="Visitar"
+                                            <Button icon="pi pi-briefcase" label="Visitar"
                                                 class="flex-auto whitespace-nowrap"></Button>
                                         </div>
                                     </div>
