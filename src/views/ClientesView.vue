@@ -3,28 +3,24 @@ import { useAuthStore } from '@/api-plugins/authStores';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { computed, onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router'; // Cambiado aquí
 
+const router = useRouter(); // Definido aquí
 const options = ref(['list', 'grid']);
 const layout = ref('list');
-const searchTerm = ref(''); // Término de búsqueda
-const clientesFiltrados = ref([]); // Clientes filtrados
-
-// Accede al store de autenticación
+const searchTerm = ref('');
+const clientesFiltrados = ref([]);
 const authStore = useAuthStore();
 const username = computed(() => authStore.user?.Username || 'Invitado');
-
-// Estado para los clientes cargados
 const clientes = ref([]);
 
-// Función para cargar clientes desde el endpoint y guardarlos en localStorage
 const cargarClientes = async () => {
     try {
-        const response = await axios.post('https://yesentregas-api.yes.com.sv/clientes/', {
+        const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/clientes/', {
             sortl: username.value,
         });
 
         if (response.data && response.data.length > 0) {
-            // Guardar los clientes en localStorage
             localStorage.setItem('clientes', JSON.stringify(response.data));
             clientes.value = response.data;
             clientesFiltrados.value = response.data;
@@ -54,7 +50,6 @@ const cargarClientes = async () => {
     }
 };
 
-// Función para mostrar los clientes guardados desde localStorage
 const mostrarClientesGuardados = () => {
     const clientesGuardados = localStorage.getItem('clientes');
     if (clientesGuardados) {
@@ -63,7 +58,6 @@ const mostrarClientesGuardados = () => {
     }
 };
 
-// Actualiza los clientes filtrados al cambiar el término de búsqueda
 watch(searchTerm, (newQuery) => {
     clientesFiltrados.value = clientes.value.filter((cliente) =>
         cliente.NAME1.toLowerCase().includes(newQuery.toLowerCase()) ||
@@ -71,11 +65,18 @@ watch(searchTerm, (newQuery) => {
     );
 });
 
-// Llamar las funciones al montar el componente
+const irAEntregas = (cliente) => {
+    localStorage.setItem('clienteSeleccionado', JSON.stringify(cliente));
+    const clienteKunnr = String(cliente.KUNNR); // Asegúrate de convertir KUNNR a string
+    router.push({ name: 'entregas', params: { id: clienteKunnr } });
+};
+
+
 onMounted(() => {
     mostrarClientesGuardados();
 });
 </script>
+
 
 <template>
     <div class="grid grid-cols-12 gap-8">
@@ -121,6 +122,12 @@ onMounted(() => {
                                                     <span class="text-surface-900 font-medium text-sm">Direccion: {{
                                                         cliente.STRAS }}</span>
                                                     <i class="pi pi-map text-500"></i>
+                                                    <span
+                                                        class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
+                                                            cliente.LATITUD }}</span>
+                                                    <span
+                                                        class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
+                                                            cliente.LONGITUD }}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -129,7 +136,9 @@ onMounted(() => {
                                                 <Button icon="pi pi-th-large" label="Mas"
                                                     class="flex-auto md:flex-initial whitespace-nowrap" />
                                                 <Button icon="pi pi-briefcase" label="Visitar"
-                                                    class="flex-auto md:flex-initial whitespace-nowrap" />
+                                                    class="flex-auto md:flex-initial whitespace-nowrap"
+                                                    @click="irAEntregas(cliente)" />
+
                                             </div>
                                         </div>
                                     </div>
@@ -146,11 +155,15 @@ onMounted(() => {
                                     class="p-6 border border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-900 rounded flex flex-col">
                                     <div class="flex flex-row justify-between items-start gap-2">
                                         <div>
-                                            <span class="text-2xl font-semibold">{{ cliente.NAME1 }}</span>
+                                            <span class="text-lg font-semibold">{{ cliente.NAME1 }}</span>
                                             <div class="text-lg font-medium mt-1">{{ cliente.NAME2 }}</div>
                                             <span
                                                 class="font-medium text-surface-500 dark:text-surface-400 text-sm">Direccion:
                                                 {{ cliente.STRAS }}</span>
+                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
+                                                cliente.LATITUD }}</span>
+                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
+                                                cliente.LONGITUD }}</span>
                                         </div>
                                     </div>
                                     <div class="flex flex-col gap-6 mt-6">
@@ -158,7 +171,9 @@ onMounted(() => {
                                             <Button icon="pi pi-th-large" label="Mas"
                                                 class="flex-auto whitespace-nowrap" />
                                             <Button icon="pi pi-briefcase" label="Visitar"
-                                                class="flex-auto whitespace-nowrap" />
+                                                class="flex-auto md:flex-initial whitespace-nowrap"
+                                                @click="irAEntregas(cliente)" />
+
                                         </div>
                                     </div>
                                 </div>

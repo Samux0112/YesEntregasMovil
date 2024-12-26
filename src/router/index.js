@@ -27,7 +27,13 @@ const routes = [
                 name: 'clientes',
                 component: () => import('@/views/ClientesView.vue'), // Ruta a la vista de entregas
                 meta: { requiresAuth: true }
-            }
+            },
+            {
+                path: 'entregas', // Ruta con un parámetro dinámico pero funciona
+                name: 'entregas',
+                component: () => import('@/views/EntregasView.vue'),
+                meta: { requiresAuth: true } // Componente para la pantalla Entregas
+            },
         ]
     }
 ];

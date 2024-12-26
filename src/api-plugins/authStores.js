@@ -90,7 +90,6 @@ export const useAuthStore = defineStore('auth', {
                                     latitude: position.coords.latitude,
                                     longitude: position.coords.longitude
                                 };
-
                                 localStorage.setItem('location', JSON.stringify(this.location));
                                 console.log('Ubicación actualizada:', this.location);
 

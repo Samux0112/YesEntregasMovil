@@ -12,7 +12,7 @@ const model = ref([
         label: 'Clientes',
         items: [{ label: 'Clientes', icon: 'pi pi-fw pi-users', to: { name: 'clientes' } }]
     },
-    
+
 ]);
 </script>
 
