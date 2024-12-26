@@ -3,9 +3,9 @@ import { useAuthStore } from '@/api-plugins/authStores';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router'; // Cambiado aquí
+import { useRouter } from 'vue-router';
 
-const router = useRouter(); // Definido aquí
+const router = useRouter();
 const options = ref(['list', 'grid']);
 const layout = ref('list');
 const searchTerm = ref('');
@@ -13,6 +13,7 @@ const clientesFiltrados = ref([]);
 const authStore = useAuthStore();
 const username = computed(() => authStore.user?.Username || 'Invitado');
 const clientes = ref([]);
+const estadoFiltro = ref('Todos'); // Estado del filtro, inicializado en 'Todos'
 
 const cargarClientes = async () => {
     try {
@@ -21,9 +22,13 @@ const cargarClientes = async () => {
         });
 
         if (response.data && response.data.length > 0) {
-            localStorage.setItem('clientes', JSON.stringify(response.data));
-            clientes.value = response.data;
-            clientesFiltrados.value = response.data;
+            const clientesConEstado = response.data.map(cliente => ({
+                ...cliente,
+                estado: cliente.estado || 'pendiente' // Asignar estado inicial como pendiente si no existe
+            }));
+            localStorage.setItem('clientes', JSON.stringify(clientesConEstado));
+            clientes.value = clientesConEstado;
+            clientesFiltrados.value = clientesConEstado;
 
             Swal.fire({
                 title: 'Clientes cargados',
@@ -58,11 +63,12 @@ const mostrarClientesGuardados = () => {
     }
 };
 
-watch(searchTerm, (newQuery) => {
-    clientesFiltrados.value = clientes.value.filter((cliente) =>
-        cliente.NAME1.toLowerCase().includes(newQuery.toLowerCase()) ||
-        cliente.NAME2.toLowerCase().includes(newQuery.toLowerCase())
-    );
+watch([searchTerm, estadoFiltro], () => {
+    clientesFiltrados.value = clientes.value.filter((cliente) => {
+        const nombreCoincide = cliente.NAME1.toLowerCase().includes(searchTerm.value.toLowerCase()) || cliente.NAME2.toLowerCase().includes(searchTerm.value.toLowerCase());
+        const estadoCoincide = estadoFiltro.value === 'Todos' ? true : cliente.estado === estadoFiltro.value.toLowerCase();
+        return nombreCoincide && estadoCoincide;
+    });
 });
 
 const irAEntregas = (cliente) => {
@@ -70,7 +76,6 @@ const irAEntregas = (cliente) => {
     const clienteKunnr = String(cliente.KUNNR); // Asegúrate de convertir KUNNR a string
     router.push({ name: 'entregas', params: { id: clienteKunnr } });
 };
-
 
 onMounted(() => {
     mostrarClientesGuardados();
@@ -87,6 +92,11 @@ onMounted(() => {
                 <!-- Campo de búsqueda -->
                 <input v-model="searchTerm" type="text" placeholder="Buscar cliente por nombre..."
                     class="w-full p-2 border rounded mb-4" />
+            </div>
+
+            <!-- Filtro por estado -->
+            <div class="mt-4">
+                <Dropdown v-model="estadoFiltro" :options="['Todos', 'Atendido', 'Pendiente']" placeholder="Filtrar por estado" class="w-full p-2 border rounded mb-4"/>
             </div>
 
             <!-- Mostrar clientes en DataView -->
@@ -106,39 +116,28 @@ onMounted(() => {
                     <template #list="slotProps">
                         <div class="flex flex-col">
                             <div v-for="(cliente) in slotProps.items" :key="cliente.KUNNR">
-                                <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4">
+                                <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4" :class="{'bg-green-100': cliente.estado === 'atendido', 'bg-red-100': cliente.estado === 'pendiente'}">
                                     <div class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6">
                                         <div class="flex flex-row md:flex-col justify-between items-start gap-2">
                                             <div>
                                                 <div class="text-lg font-medium mt-2">{{ cliente.NAME1 }}</div>
-                                                <span
-                                                    class="font-medium text-surface-500 dark:text-surface-400 text-sm">
+                                                <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">
                                                     {{ cliente.NAME2 }}
                                                 </span>
                                             </div>
                                             <div class="bg-surface-100 p-1" style="border-radius: 30px">
-                                                <div class="bg-surface-0 flex items-center gap-2 justify-center py-1 px-2"
-                                                    style="border-radius: 30px;">
-                                                    <span class="text-surface-900 font-medium text-sm">Direccion: {{
-                                                        cliente.STRAS }}</span>
+                                                <div class="bg-surface-0 flex items-center gap-2 justify-center py-1 px-2" style="border-radius: 30px;">
+                                                    <span class="text-surface-900 font-medium text-sm">Direccion: {{ cliente.STRAS }}</span>
                                                     <i class="pi pi-map text-500"></i>
-                                                    <span
-                                                        class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
-                                                            cliente.LATITUD }}</span>
-                                                    <span
-                                                        class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
-                                                            cliente.LONGITUD }}</span>
+                                                    <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{ cliente.LATITUD }}</span>
+                                                    <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{ cliente.LONGITUD }}</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="flex flex-col md:items-end gap-8">
                                             <div class="flex flex-row-reverse md:flex-row gap-2">
-                                                <Button icon="pi pi-th-large" label="Mas"
-                                                    class="flex-auto md:flex-initial whitespace-nowrap" />
-                                                <Button icon="pi pi-briefcase" label="Visitar"
-                                                    class="flex-auto md:flex-initial whitespace-nowrap"
-                                                    @click="irAEntregas(cliente)" />
-
+                                                <Button icon="pi pi-th-large" label="Mas" class="flex-auto md:flex-initial whitespace-nowrap" />
+                                                <Button icon="pi pi-briefcase" label="Visitar" class="flex-auto md:flex-initial whitespace-nowrap" @click="irAEntregas(cliente)" />
                                             </div>
                                         </div>
                                     </div>
@@ -149,31 +148,21 @@ onMounted(() => {
                     <!-- Diseño en formato grid -->
                     <template #grid="slotProps">
                         <div class="grid grid-cols-12 gap-4">
-                            <div v-for="(cliente) in slotProps.items" :key="cliente.KUNNR"
-                                class="col-span-12 sm:col-span-6 lg:col-span-4 p-2">
-                                <div
-                                    class="p-6 border border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-900 rounded flex flex-col">
+                            <div v-for="(cliente) in slotProps.items" :key="cliente.KUNNR" class="col-span-12 sm:col-span-6 lg:col-span-4 p-2">
+                                <div class="p-6 border border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-900 rounded flex flex-col" :class="{'bg-green-100': cliente.estado === 'atendido', 'bg-red-100': cliente.estado === 'pendiente'}">
                                     <div class="flex flex-row justify-between items-start gap-2">
                                         <div>
                                             <span class="text-lg font-semibold">{{ cliente.NAME1 }}</span>
                                             <div class="text-lg font-medium mt-1">{{ cliente.NAME2 }}</div>
-                                            <span
-                                                class="font-medium text-surface-500 dark:text-surface-400 text-sm">Direccion:
-                                                {{ cliente.STRAS }}</span>
-                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
-                                                cliente.LATITUD }}</span>
-                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
-                                                cliente.LONGITUD }}</span>
+                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">Direccion: {{ cliente.STRAS }}</span>
+                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{ cliente.LATITUD }}</span>
+                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{ cliente.LONGITUD }}</span>
                                         </div>
                                     </div>
                                     <div class="flex flex-col gap-6 mt-6">
                                         <div class="flex gap-2">
-                                            <Button icon="pi pi-th-large" label="Mas"
-                                                class="flex-auto whitespace-nowrap" />
-                                            <Button icon="pi pi-briefcase" label="Visitar"
-                                                class="flex-auto md:flex-initial whitespace-nowrap"
-                                                @click="irAEntregas(cliente)" />
-
+                                            <Button icon="pi pi-th-large" label="Mas" class="flex-auto whitespace-nowrap" />
+                                            <Button icon="pi pi-briefcase" label="Visitar" class="flex-auto md:flex-initial whitespace-nowrap" @click="irAEntregas(cliente)" />
                                         </div>
                                     </div>
                                 </div>
