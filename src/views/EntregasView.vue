@@ -6,7 +6,7 @@ import { useRoute } from 'vue-router';
 
 const route = useRoute(); // Usamos useRoute para acceder a los parámetros de la URL
 const cliente = ref(null); // Variable para almacenar el cliente seleccionado
-const arktxList = ref([]); // Lista para almacenar todos los ARKTX
+const arktxList = ref([]); // Lista para almacenar todos los ARKTX y FKIMG
 const loading = ref(false); // Indicador de carga
 const authStore = useAuthStore(); // Accedemos al store de autenticación
 const username = computed(() => authStore.user?.Username); // Obtener el username del store
@@ -19,8 +19,10 @@ const cargarCliente = () => {
         const clienteId = route.params.id; // Obtener el id del cliente desde la URL
         const clientesGuardados = JSON.parse(localStorage.getItem('clientes') || '[]');
         cliente.value = clientesGuardados.find(c => String(c.KUNNR) === clienteId); // Buscar el cliente en la lista cargada
+        console.log('Cliente cargado desde URL:', cliente.value);
     } else {
         cliente.value = clienteGuardado; // Usar el cliente guardado en localStorage
+        console.log('Cliente cargado desde localStorage:', cliente.value);
     }
 };
 
@@ -29,7 +31,7 @@ const limpiarValor = (valor) => {
     return String(valor).replace(/[^\x20-\x7E]/g, '').trim(); // Elimina caracteres no imprimibles y espacios
 };
 
-const cargarProductos = async () => {
+const cargarProductosDesdeAPI = async () => {
     if (cliente.value && username.value) {
         loading.value = true; // Indicamos que estamos cargando los productos
         try {
@@ -54,9 +56,13 @@ const cargarProductos = async () => {
             });
 
             if (entregasCliente.length > 0) {
-                // Almacenamos todos los ARKTX que coinciden con el cliente en localStorage
-                arktxList.value = entregasCliente.map(entrega => entrega.ARKTX);
+                // Almacenamos todos los ARKTX y FKIMG que coinciden con el cliente en arktxList
+                arktxList.value = entregasCliente.map(entrega => ({
+                    ARKTX: entrega.ARKTX,
+                    FKIMG: parseFloat(entrega.FKIMG) // Asegúrate de que FKIMG se maneje como número de punto flotante
+                }));
                 localStorage.setItem(`productos_${cliente.value.KUNNR}`, JSON.stringify(arktxList.value));
+                console.log('Productos guardados en localStorage:', arktxList.value);
             } else {
                 console.log('No se encontró coincidencia entre KUNNR y KUNNAG');
             }
@@ -73,19 +79,17 @@ const cargarProductosDesdeLocalStorage = () => {
     const productosGuardados = JSON.parse(localStorage.getItem(`productos_${cliente.value.KUNNR}`));
     if (productosGuardados) {
         arktxList.value = productosGuardados;
+        console.log('Productos cargados desde localStorage:', arktxList.value);
     }
 };
 
 // Llamar a la función para cargar el cliente y los productos cuando se monte el componente
 onMounted(() => {
     cargarCliente();
+    cargarProductosDesdeAPI();
     cargarProductosDesdeLocalStorage();
-    if (!arktxList.value.length) {
-        cargarProductos();
-    }
 });
 </script>
-
 <template>
     <div>
         <h1>Entregas</h1>
@@ -96,9 +100,12 @@ onMounted(() => {
             <p><strong>Longitud:</strong> {{ cliente.LONGITUD }}</p>
 
             <div v-if="arktxList.length > 0">
-                <p><strong>ARKTX:</strong></p>
+                <p><strong>Productos:</strong></p>
                 <ul>
-                    <li v-for="(arktx, index) in arktxList" :key="index">{{ arktx }}</li>
+                    <li v-for="(producto, index) in arktxList" :key="index">
+                        <p><strong>ARKTX:</strong> {{ producto.ARKTX }}</p>
+                        <p><strong>FKIMG:</strong> {{ producto.FKIMG }}</p>
+                    </li>
                 </ul>
             </div>
             <div v-else>

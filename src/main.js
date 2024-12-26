@@ -8,6 +8,7 @@ import Aura from '@primevue/themes/aura';
 import PrimeVue from 'primevue/config';
 import ConfirmationService from 'primevue/confirmationservice';
 import ToastService from 'primevue/toastservice';
+import '@/api-plugins/limpiarLocal'; // Importa tu store de autenticación
 
 import '@/assets/styles.scss';
 import '@/assets/tailwind.css';
