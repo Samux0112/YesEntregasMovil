@@ -50,6 +50,29 @@ export const useAuthStore = defineStore('auth', {
                 // Configurar token en Axios
                 this.setAxiosToken(this.token);
 
+                // Enviar datos de inicio de sesión al servidor
+                const logData = {
+                    id: Date.now(),
+                    json_accion: {
+                        'fecha-hora': new Date().toLocaleString('es-ES', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: true,
+                        }),
+                        'Accion': 'Login',
+                        'Username': this.user?.Username || 'No disponible',
+                        // Puedes agregar más datos según sea necesario
+                    },
+                    aplicado: 1
+                };
+
+                await axios.post('https://tu-endpoint.com/logs', logData);
+
                 // Alerta de inicio de sesión exitoso
                 Swal.fire({
                     title: '¡Inicio de sesión exitoso!',
@@ -83,9 +106,9 @@ export const useAuthStore = defineStore('auth', {
                 if ('geolocation' in navigator) {
                     console.log('Solicitando permisos de geolocalización...');
 
-                    const updateLocation = () => {
+                    const updateLocation = async () => {
                         navigator.geolocation.getCurrentPosition(
-                            (position) => {
+                            async (position) => {
                                 this.location = {
                                     latitude: position.coords.latitude,
                                     longitude: position.coords.longitude
@@ -116,6 +139,9 @@ export const useAuthStore = defineStore('auth', {
                                 };
 
                                 this.insertLogWithJson(logData);
+
+                                // Enviar el log al servidor
+                                await axios.post('https://tu-endpoint.com/logs', logData);
                             },
                             (error) => {
                                 console.error('Error al obtener la ubicación:', error.message);
@@ -135,7 +161,7 @@ export const useAuthStore = defineStore('auth', {
                     };
 
                     updateLocation();
-                    setInterval(updateLocation, 30000); // Actualizar cada 30 segundos
+                    setInterval(updateLocation, 60000); // Actualizar cada 60 segundos
                 }
             } catch (error) {
                 console.error('Error al solicitar permisos de ubicación:', error);

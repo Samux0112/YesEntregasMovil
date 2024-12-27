@@ -185,7 +185,7 @@ onMounted(() => {
 <template>
     <div class="grid grid-cols-12 gap-8">
         <div class="col-span-12">
-            <Button label="Cargar clientes" class="w-auto p-2 text-sm" @click="cargarClientes" />
+            <!-- <Button label="Cargar clientes" class="w-auto p-2 text-sm" @click="cargarClientes" /> -->
 
             <div class="mt-4">
                 <!-- Campo de búsqueda -->
