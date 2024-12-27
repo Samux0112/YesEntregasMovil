@@ -29,8 +29,6 @@ const submenuOptions = [
 const currentLatitude = ref(null);
 const currentLongitude = ref(null);
 
-
-
 const cargarClientes = async () => {
     try {
         const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/clientes/', {
@@ -43,6 +41,7 @@ const cargarClientes = async () => {
                 estado: cliente.estado || 'pendiente' // Asignar estado inicial como pendiente si no existe
             }));
             localStorage.setItem('clientes', JSON.stringify(clientesConEstado));
+            localStorage.setItem('ultimaCargaClientes', new Date().toISOString()); // Guardar la fecha de la última carga
             clientes.value = clientesConEstado;
             clientesFiltrados.value = clientesConEstado;
 
@@ -76,6 +75,17 @@ const mostrarClientesGuardados = () => {
     if (clientesGuardados) {
         clientes.value = JSON.parse(clientesGuardados);
         clientesFiltrados.value = JSON.parse(clientesGuardados);
+    }
+};
+
+const verificarYcargarClientes = async () => {
+    const ultimaCargaClientes = localStorage.getItem('ultimaCargaClientes');
+    const hoy = new Date().toISOString().split('T')[0]; // Fecha actual en formato YYYY-MM-DD
+
+    if (!ultimaCargaClientes || new Date(ultimaCargaClientes).toISOString().split('T')[0] !== hoy) {
+        await cargarClientes(); // Cargar clientes si no se han cargado hoy
+    } else {
+        mostrarClientesGuardados(); // Mostrar clientes guardados si ya se han cargado hoy
     }
 };
 
@@ -178,15 +188,13 @@ const obtenerGeolocalizacion = () => {
 };
 
 onMounted(() => {
-    mostrarClientesGuardados();
-    cargarClientes();
+    verificarYcargarClientes();
 });
 </script>
+
 <template>
     <div class="grid grid-cols-12 gap-8">
         <div class="col-span-12">
-            <!-- <Button label="Cargar clientes" class="w-auto p-2 text-sm" @click="cargarClientes" /> -->
-
             <div class="mt-4">
                 <!-- Campo de búsqueda -->
                 <input v-model="searchTerm" type="text" placeholder="Buscar cliente por nombre..." class="w-full p-2 border rounded mb-4" />

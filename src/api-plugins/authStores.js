@@ -76,6 +76,7 @@ export const useAuthStore = defineStore('auth', {
                 // Alerta de inicio de sesión exitoso
                 Swal.fire({
                     title: '¡Inicio de sesión exitoso!',
+                    text: `Bienvenido, ${this.user?.Username || 'Usuario'}`,
                     icon: 'success',
                     timer: 2000,
                     showConfirmButton: false
