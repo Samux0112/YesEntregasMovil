@@ -4,12 +4,13 @@ import { useLayout } from '@/layout/composables/layout';
 import AppConfigurator from './AppConfigurator.vue';
 
 const authStore = useAuthStore(); // Instanciamos el store de autenticación
-const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout();
+const { toggleMenu, toggleDarkMode, isDarkTheme, defaultSwal } = useLayout();
 
 // Lógica para manejar el logout
 const handleLogout = () => {
     authStore.logout(); // Llama a la acción logout del store
 };
+
 </script>
 
 <template>
@@ -49,3 +50,4 @@ const handleLogout = () => {
         </div>
     </div>
 </template>
+

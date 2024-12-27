@@ -3,7 +3,8 @@ import { useLayout } from '@/layout/composables/layout';
 import { $t, updatePreset, updateSurfacePalette } from '@primevue/themes';
 import Aura from '@primevue/themes/aura';
 import Lara from '@primevue/themes/lara';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
+import Swal from 'sweetalert2';
 
 const { layoutConfig, isDarkTheme } = useLayout();
 
@@ -195,6 +196,7 @@ function onMenuModeChange() {
     layoutConfig.menuMode = menuMode.value;
 }
 </script>
+
 
 <template>
     <div

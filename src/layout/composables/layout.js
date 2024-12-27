@@ -1,4 +1,5 @@
-import { computed, reactive } from 'vue';
+import { computed, reactive, watch } from 'vue';
+import Swal from 'sweetalert2';
 
 const layoutConfig = reactive({
     preset: 'Aura',
@@ -18,6 +19,31 @@ const layoutState = reactive({
     activeMenuItem: null
 });
 
+const getSwalClass = () => {
+    return layoutConfig.darkTheme ? 'swal-dark' : 'swal-light';
+};
+
+// Configuración de SweetAlert2
+const defaultSwal = Swal.mixin({
+    customClass: {
+        popup: getSwalClass(),
+    },
+    didOpen: () => {
+        const classToAdd = getSwalClass();
+        const classToRemove = layoutConfig.darkTheme ? 'swal-light' : 'swal-dark';
+        Swal.getPopup().classList.add(classToAdd);
+        Swal.getPopup().classList.remove(classToRemove);
+    }
+});
+
+watch(() => layoutConfig.darkTheme, () => {
+    Swal.update({
+        customClass: {
+            popup: getSwalClass(),
+        }
+    });
+});
+
 export function useLayout() {
     const setActiveMenuItem = (item) => {
         layoutState.activeMenuItem = item.value || item;
@@ -26,11 +52,10 @@ export function useLayout() {
     const toggleDarkMode = () => {
         if (!document.startViewTransition) {
             executeDarkModeToggle();
-
             return;
         }
 
-        document.startViewTransition(() => executeDarkModeToggle(event));
+        document.startViewTransition(() => executeDarkModeToggle());
     };
 
     const executeDarkModeToggle = () => {
@@ -67,6 +92,7 @@ export function useLayout() {
         getPrimary,
         getSurface,
         setActiveMenuItem,
-        toggleDarkMode
+        toggleDarkMode,
+        defaultSwal // Exporta defaultSwal para usarlo en otros componentes
     };
 }

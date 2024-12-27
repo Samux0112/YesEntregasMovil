@@ -15,6 +15,22 @@ const username = computed(() => authStore.user?.Username || 'Invitado');
 const clientes = ref([]);
 const estadoFiltro = ref('Todos'); // Estado del filtro, inicializado en 'Todos'
 
+// Estado para el submenú
+const showSubmenu = ref(false);
+const submenuCliente = ref(null);
+const submenuOptions = [
+    { label: 'Tomar Georreferencia', value: 'georreferencia' },
+    { label: 'Graficar Ruta', value: 'ruta' },
+    { label: 'Formulario de Encuestas', value: 'encuesta' },
+    { label: 'Llamada Telefónica', value: 'llamada' }
+];
+
+// Variables para geolocalización
+const currentLatitude = ref(null);
+const currentLongitude = ref(null);
+
+
+
 const cargarClientes = async () => {
     try {
         const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/clientes/', {
@@ -77,12 +93,95 @@ const irAEntregas = (cliente) => {
     router.push({ name: 'entregas', params: { id: clienteKunnr } });
 };
 
+// Nueva función para mostrar el submenú
+const mostrarSubmenu = (cliente) => {
+    if (cliente) {
+        submenuCliente.value = cliente;
+        showSubmenu.value = true;
+        obtenerGeolocalizacion();
+    } else {
+        console.error('Cliente es null');
+    }
+};
+
+// Funciones para el submenú
+const handleSubmenuClick = (option) => {
+    switch (option.value) {
+        case 'georreferencia':
+            Swal.fire({
+                title: 'Tomar Georreferencia',
+                html: `
+                    <p>Latitud: ${currentLatitude.value}</p>
+                    <p>Longitud: ${currentLongitude.value}</p>
+                    <input type="file" id="foto" class="swal2-file">
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    const foto = Swal.getPopup().querySelector('#foto').files[0];
+                    if (!currentLatitude.value || !currentLongitude.value || !foto) {
+                        Swal.showValidationMessage(`Por favor completa todos los campos`);
+                    }
+                    return { latitud: currentLatitude.value, longitud: currentLongitude.value, foto };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Aquí puedes manejar el guardado de la georreferencia y la foto
+                    console.log(result.value);
+                }
+            });
+            break;
+        case 'ruta':
+            const urlWaze = `https://www.waze.com/ul?ll=${currentLatitude.value},${currentLongitude.value}&navigate=yes`;
+            const urlMaps = `https://www.google.com/maps/dir/?api=1&origin=${currentLatitude.value},${currentLongitude.value}&destination=${submenuCliente.value.LATITUD},${submenuCliente.value.LONGITUD}`;
+            Swal.fire({
+                title: 'Graficar Ruta',
+                html: `
+                    <a href="${urlWaze}" target="_blank">Abrir en Waze</a><br>
+                    <a href="${urlMaps}" target="_blank">Abrir en Google Maps</a>
+                `,
+                showCancelButton: true,
+                cancelButtonText: 'Cerrar'
+            });
+            break;
+        case 'encuesta':
+            const urlEncuesta = `https://www.example.com/encuesta?kunnr=${submenuCliente.value.KUNNR}`;
+            window.open(urlEncuesta, '_blank');
+            break;
+        case 'llamada':
+            const numeroTelefono = submenuCliente.value.TELF1;
+            window.open(`tel:${numeroTelefono}`);
+            break;
+    }
+    showSubmenu.value = false;
+};
+
+// Obtener la geolocalización actual del usuario
+const obtenerGeolocalizacion = () => {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+            currentLatitude.value = position.coords.latitude;
+            currentLongitude.value = position.coords.longitude;
+        }, (error) => {
+            console.error('Error obteniendo la geolocalización:', error);
+        });
+    } else {
+        console.error('Geolocalización no soportada por el navegador');
+        Swal.fire({
+            title: 'Error',
+            text: 'Geolocalización no soportada por el navegador.',
+            icon: 'error',
+            confirmButtonText: 'Entendido',
+        });
+    }
+};
+
 onMounted(() => {
     mostrarClientesGuardados();
+    cargarClientes();
 });
 </script>
-
-
 <template>
     <div class="grid grid-cols-12 gap-8">
         <div class="col-span-12">
@@ -128,7 +227,7 @@ onMounted(() => {
                                     </div>
                                     <div class="flex flex-col gap-6 mt-6">
                                         <div class="flex gap-2">
-                                            <Button icon="pi pi-th-large" label="Más" class="flex-auto whitespace-nowrap" />
+                                            <Button icon="pi pi-th-large" label="Más" class="flex-auto whitespace-nowrap" @click="() => mostrarSubmenu(cliente)" />
                                             <Button icon="pi pi-briefcase" label="Visitar" class="flex-auto md:flex-initial whitespace-nowrap" @click="irAEntregas(cliente)" />
                                         </div>
                                     </div>
@@ -159,7 +258,7 @@ onMounted(() => {
                                         </div>
                                         <div class="flex flex-col md:items-end gap-8">
                                             <div class="flex flex-row-reverse md:flex-row gap-2">
-                                                <Button icon="pi pi-th-large" label="Más" class="flex-auto md:flex-initial whitespace-nowrap" />
+                                                <Button icon="pi pi-th-large" label="Más" class="flex-auto md:flex-initial whitespace-nowrap" @click="() => mostrarSubmenu(cliente)" />
                                                 <Button icon="pi pi-briefcase" label="Visitar" class="flex-auto md:flex-initial whitespace-nowrap" @click="irAEntregas(cliente)" />
                                             </div>
                                         </div>
@@ -174,5 +273,20 @@ onMounted(() => {
             <!-- Mensaje si no hay clientes cargados -->
             <div v-else class="text-xl mt-4">No hay clientes cargados.</div>
         </div>
+
+        <!-- Submenú Modal -->
+        <Dialog header="Opciones" v-model:visible="showSubmenu" :modal="true" :closable="true">
+            <div class="flex flex-col gap-4">
+                <Button icon="pi pi-compass" label="Tomar Georreferencia" @click="handleSubmenuClick({ value: 'georreferencia' })" />
+                <Button icon="pi pi-map" label="Graficar Ruta" @click="handleSubmenuClick({ value: 'ruta' })" />
+                <Button icon="pi pi-question-circle" label="Formulario de Encuestas" @click="handleSubmenuClick({ value: 'encuesta' })" />
+                <Button icon="pi pi-phone" label="Llamada Telefónica" @click="handleSubmenuClick({ value: 'llamada' })" />
+            </div>
+            <div v-if="currentLatitude && currentLongitude" class="mt-4">
+                <p>Ubicación actual:</p>
+                <p>Latitud: {{ currentLatitude }}</p>
+                <p>Longitud: {{ currentLongitude }}</p>
+            </div>
+        </Dialog>
     </div>
 </template>
