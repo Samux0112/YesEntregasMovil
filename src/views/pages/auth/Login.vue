@@ -2,18 +2,22 @@
 import { useAuthStore } from '@/api-plugins/authStores.js'; // Importa el store de autenticación
 import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
+import Password from 'primevue/password';
 
 const username = ref('');
 const password = ref('');
 
 const authStore = useAuthStore(); // Instancia del store
 const router = useRouter();
-//poner en mayuscula las palabras del username
+
+// Poner en mayúscula las palabras del username
 watch(username, (newValue) => {
     username.value = newValue.toUpperCase();
 });
 
-//poner en mayuscula las palabras de password
+// Poner en mayúscula las palabras de password
 watch(password, (newValue) => {
     password.value = newValue.toUpperCase();
 });
@@ -31,10 +35,10 @@ const handleLogin = async () => {
 </script>
 
 <template>
-    <FloatingConfigurator />
     <div class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-[100vw] overflow-hidden">
         <div class="flex flex-col items-center justify-center">
-            <div style="border-radius: 56px; padding: 0.3rem; background: linear-gradient(180deg, var(--primary-color) 10%, rgba(33, 150, 243, 0) 30%)">
+            <!-- Reemplazamos var(--primary-color) por el código hexadecimal del color naranja -->
+            <div style="border-radius: 56px; padding: 0.3rem; background: linear-gradient(180deg, #f97316 10%, rgba(33, 150, 243, 0) 30%)">
                 <div class="w-full bg-surface-0 dark:bg-surface-900 py-20 px-8 sm:px-20" style="border-radius: 53px">
                     <div class="text-center mb-8">
                         <div class="flex justify-center mb-8">
@@ -64,7 +68,7 @@ const handleLogin = async () => {
                             @keyup.enter="handleLogin"
                         />
                         <!-- Botón de inicio de sesión -->
-                        <Button label="Iniciar Sesión" class="w-full" @click="handleLogin"></Button>
+                        <Button label="Iniciar Sesión" class="w-full p-button-orange" @click="handleLogin"></Button>
                     </div>
                 </div>
             </div>
@@ -87,5 +91,15 @@ const handleLogin = async () => {
 .pi-eye-slash {
     transform: scale(1.6);
     margin-right: 1rem;
+}
+
+/* Estilos adicionales para el botón naranja */
+.p-button-orange {
+    background-color: #f97316; /* Color de fondo naranja */
+    border-color: #f97316; /* Color del borde naranja */
+}
+.p-button-orange:hover {
+    background-color: #c2410c; /* Color de fondo naranja más oscuro al pasar el cursor */
+    border-color: #c2410c; /* Color del borde naranja más oscuro al pasar el cursor */
 }
 </style>

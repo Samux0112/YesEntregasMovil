@@ -148,8 +148,12 @@ const handleSubmenuClick = (option) => {
             Swal.fire({
                 title: 'Graficar Ruta',
                 html: `
-                    <a href="${urlWaze}" target="_blank">Abrir en Waze</a><br>
-                    <a href="${urlMaps}" target="_blank">Abrir en Google Maps</a>
+                    <button onclick="window.open('${urlWaze}', '_blank')" class="swal2-confirm swal2-styled">
+                        <font-awesome-icon :icon="['fab', 'waze']" /> Abrir en Waze
+                    </button><br>
+                    <button onclick="window.open('${urlMaps}', '_blank')" class="swal2-confirm swal2-styled">
+                        <font-awesome-icon :icon="['fab', 'google']" /> Abrir en Google Maps
+                    </button>
                 `,
                 showCancelButton: true,
                 cancelButtonText: 'Cerrar'

@@ -39,7 +39,14 @@ export const useAuthStore = defineStore('auth', {
                 // Verificar si el usuario tiene los permisos necesarios
                 const hasRequiredGroup = this.groups.includes('YesEntregas-Entregador');
                 if (!hasRequiredGroup) {
-                    throw new Error('No tienes los permisos necesarios para acceder a este sistema.');
+                    // Mostrar mensaje de error
+                    Swal.fire({
+                        title: 'Acceso Denegado',
+                        text: 'No tienes los permisos necesarios para acceder a este sistema.',
+                        icon: 'error',
+                        confirmButtonText: 'Entendido'
+                    });
+                    return; // Prevenir acceso al sistema
                 }
 
                 // Guardar en localStorage
@@ -71,7 +78,7 @@ export const useAuthStore = defineStore('auth', {
                     aplicado: 1
                 };
 
-                await axios.post('https://tu-endpoint.com/logs', logData);
+                await axios.post('https://tu-endpoint.com/logs', logData);// aqui se enviaran los datos al post del endpoint
 
                 // Alerta de inicio de sesión exitoso
                 Swal.fire({

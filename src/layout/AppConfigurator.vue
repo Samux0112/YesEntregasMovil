@@ -140,7 +140,7 @@ applyTheme('primary', primaryColors.value.find((c) => c.name === 'orange'));
                         :title="primaryColor.name"
                         @click="updateColors('primary', primaryColor)"
                         :class="['border-none w-5 h-5 rounded-full p-0 cursor-pointer outline-none outline-offset-1', { 'outline-primary': layoutConfig.primary === primaryColor.name }]"
-                        :style="{ backgroundColor: `${primaryColor.name === 'noir' ? 'var(--text-color)' : primaryColor.palette['500']}` }"
+                        :style="{ backgroundColor: `${primaryColor.name === 'orange' ? 'var(--text-color)' : primaryColor.palette['500']}` }"
                     ></button>
                 </div>
             </div>
