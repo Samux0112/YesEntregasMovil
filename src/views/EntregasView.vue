@@ -60,7 +60,7 @@ const handleDialogConfirm = async () => {
                 }
             });
             estadoCliente = 'atendido';
-            guardarEstadoCliente(estadoCliente);
+            actualizarClientes(estadoCliente);
             Swal.fire('Entregado', 'Todos los productos han sido entregados.', 'success').then(() => {
                 router.push('/clientes'); // Redirige al menú de clientes
             });
@@ -110,13 +110,13 @@ const handleDialogConfirm = async () => {
                 });
 
                 estadoCliente = 'pendiente';
-                guardarEstadoCliente(estadoCliente);
+                actualizarClientes(estadoCliente);
                 Swal.fire('Guardado', 'Los datos han sido guardados.', 'success').then(() => {
                     router.push('/clientes'); // Redirige al menú de clientes
                 });
             } else {
                 estadoCliente = 'atendido';
-                guardarEstadoCliente(estadoCliente);
+                actualizarClientes(estadoCliente);
                 Swal.fire('Guardado', 'Los datos han sido guardados.', 'success').then(() => {
                     arktxList.value.forEach(item => item.editable = true); // Activar edición de productos
                 });
@@ -128,12 +128,16 @@ const handleDialogConfirm = async () => {
     }
 };
 
-// Guardar el estado del cliente en localStorage
-const guardarEstadoCliente = (estado) => {
+// Actualizar el estado del cliente en localStorage
+const actualizarClientes = (estado) => {
     let clientes = JSON.parse(localStorage.getItem('clientes')) || [];
     let clienteIndex = clientes.findIndex(c => c.KUNNR === cliente.value.KUNNR);
     if (clienteIndex !== -1) {
-        clientes[clienteIndex].estado = estado;
+        if (estado === 'atendido') {
+            clientes.splice(clienteIndex, 1); // Eliminar cliente atendido
+        } else {
+            clientes[clienteIndex].estado = estado;
+        }
         localStorage.setItem('clientes', JSON.stringify(clientes));
     }
 };
@@ -219,7 +223,7 @@ const cargarProductosDesdeAPI = async () => {
                     VBELN: entrega.VBELN,
                     POSNR: entrega.POSNR,
                     entregado: entrega.FKIMG, // Inicializar con la misma cantidad
-                    editable: false // Inicialmente no editable
+                    editable: true // Inicialmente editable
                 }));
                 localStorage.setItem(`productos_${cliente.value.KUNNR}`, JSON.stringify(arktxList.value));
                 console.log('Productos guardados en localStorage:', arktxList.value);
@@ -329,7 +333,6 @@ onMounted(() => {
                 >
                     <template #header>
                         <div class="flex justify-between items-center">
-                            <span>Entregado</span>
                             <Button 
                                 v-if="showConfirmButton" 
                                 icon="pi pi-check" 
@@ -340,13 +343,11 @@ onMounted(() => {
                     </template>
                     <template #body="slotProps">
                         <div class="flex items-center">
-                            <!-- posible error de colocar datos aca en el movil -->
-                            <InputText
+                            <InputText 
                                 v-model="slotProps.data.entregado" 
                                 class="small-input" 
                                 :disabled="!slotProps.data.editable"
-                                :minFractionDigits="0"
-                                :maxFractionDigits="0"
+                                @input="handleInput(slotProps.data)"
                             />
                         </div>
                     </template>
@@ -370,3 +371,24 @@ onMounted(() => {
         </Dialog>
     </div>
 </template>
+
+<script>
+function handleInput(data) {
+    const originalValue = data.entregado;
+    data.entregado = data.entregado.replace(/\D/g, '');
+
+    if (originalValue !== data.entregado) {
+        Swal.fire('Error', 'Solo se deben ingresar números.', 'error');
+    } else if (parseInt(data.entregado) > data.FKIMG || parseInt(data.entregado) < 0) {
+        Swal.fire('Error', 'El valor de entregado debe ser igual o menor que la cantidad y mayor o igual a 0.', 'error');
+        data.entregado = originalValue; // Revertir al valor original si no cumple la validación
+    }
+}
+</script>
+
+<style scoped>
+.small-input {
+    width: 60px;
+    padding: 5px;
+}
+</style>
