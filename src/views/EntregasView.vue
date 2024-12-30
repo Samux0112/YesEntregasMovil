@@ -92,15 +92,14 @@ const handleDialogConfirm = async () => {
                 }
             });
 
-            // Verificar si el motivo es 1 o 4
-            if (selectedOption.value === 'no_entregado' || (selectedOption.value === 'parcial' && (selectedMotivo.value === 1 || selectedMotivo.value === 4))) {
+            if (selectedOption.value === 'no_entregado') {
                 const noEntregadoData = arktxList.value.map(item => ({
                     vbeln: item.VBELN,
                     posnr: item.POSNR,
-                    entregado: 0 // Enviar 0 cuando no entregado o parcial con motivo 1 o 4
+                    entregado: 0 // Enviar 0 cuando no entregado
                 }));
 
-                console.log('Datos enviados para "No Entregado" o "Parcial" con motivo 1 o 4:', noEntregadoData);
+                console.log('Datos enviados para "No Entregado":', noEntregadoData);
 
                 await axios.post('https://calidad-yesentregas-api.yes.com.sv/entregas/update/', noEntregadoData, {
                     headers: {

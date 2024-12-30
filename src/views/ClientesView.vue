@@ -3,7 +3,7 @@ import { useAuthStore } from '@/api-plugins/authStores';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 const router = useRouter();
 const options = ref(['list', 'grid']);
@@ -114,6 +114,22 @@ const mostrarSubmenu = (cliente) => {
     }
 };
 
+// Función para enviar la georreferencia
+const enviarGeorreferencia = async (kunnr, latitud, longitud) => {
+    try {
+        const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/clientes/update/', {
+            kunnr,
+            latitud,
+            longitud
+        });
+        Swal.fire('Guardado', 'La georreferencia ha sido guardada correctamente.', 'success');
+        console.log('Respuesta de la API:', response.data);
+    } catch (error) {
+        console.error('Error al enviar la georreferencia:', error);
+        Swal.fire('Error', 'Hubo un problema al guardar la georreferencia.', 'error');
+    }
+};
+
 // Funciones para el submenú
 const handleSubmenuClick = (option) => {
     switch (option.value) {
@@ -130,15 +146,15 @@ const handleSubmenuClick = (option) => {
                 cancelButtonText: 'Cancelar',
                 preConfirm: () => {
                     const foto = Swal.getPopup().querySelector('#foto').files[0];
-                    if (!currentLatitude.value || !currentLongitude.value || !foto) {
+                    if (!currentLatitude.value || !currentLongitude.value) {
                         Swal.showValidationMessage(`Por favor completa todos los campos`);
                     }
                     return { latitud: currentLatitude.value, longitud: currentLongitude.value, foto };
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Aquí puedes manejar el guardado de la georreferencia y la foto
-                    console.log(result.value);
+                    // Enviar la georreferencia al servidor
+                    enviarGeorreferencia(submenuCliente.value.KUNNR, result.value.latitud, result.value.longitud);
                 }
             });
             break;
