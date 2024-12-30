@@ -148,11 +148,9 @@ const handleSubmenuClick = (option) => {
             Swal.fire({
                 title: 'Graficar Ruta',
                 html: `
-                    <button onclick="window.open('${urlWaze}', '_blank')" class="swal2-confirm swal2-styled">
-                        <font-awesome-icon :icon="['fab', 'waze']" /> Abrir en Waze
+                    <button onclick="window.open('${urlWaze}', '_blank')" class="swal2-confirm swal2-styled">Abrir en Waze
                     </button><br>
-                    <button onclick="window.open('${urlMaps}', '_blank')" class="swal2-confirm swal2-styled">
-                        <font-awesome-icon :icon="['fab', 'google']" /> Abrir en Google Maps
+                    <button onclick="window.open('${urlMaps}', '_blank')" class="swal2-confirm swal2-styled"> Abrir en Google Maps
                     </button>
                 `,
                 showCancelButton: true,
@@ -182,12 +180,6 @@ const obtenerGeolocalizacion = () => {
         });
     } else {
         console.error('Geolocalización no soportada por el navegador');
-        Swal.fire({
-            title: 'Error',
-            text: 'Geolocalización no soportada por el navegador.',
-            icon: 'error',
-            confirmButtonText: 'Entendido',
-        });
     }
 };
 
@@ -293,11 +285,6 @@ onMounted(() => {
                 <Button icon="pi pi-map" label="Graficar Ruta" @click="handleSubmenuClick({ value: 'ruta' })" />
                 <Button icon="pi pi-question-circle" label="Formulario de Encuestas" @click="handleSubmenuClick({ value: 'encuesta' })" />
                 <Button icon="pi pi-phone" label="Llamada Telefónica" @click="handleSubmenuClick({ value: 'llamada' })" />
-            </div>
-            <div v-if="currentLatitude && currentLongitude" class="mt-4">
-                <p>Ubicación actual:</p>
-                <p>Latitud: {{ currentLatitude }}</p>
-                <p>Longitud: {{ currentLongitude }}</p>
             </div>
         </Dialog>
     </div>

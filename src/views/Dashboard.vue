@@ -2,7 +2,8 @@
 import { useAuthStore } from '@/api-plugins/authStores';
 import axios from 'axios';
 import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router'; // Importar el router
+import { useRouter } from 'vue-router';
+import Swal from 'sweetalert2';
 
 // Accede al router
 const router = useRouter();
@@ -13,6 +14,9 @@ const authStore = useAuthStore();
 // Carga la sesión al iniciar el componente
 onMounted(() => {
     authStore.loadSession();
+    // Solicitar la ubicación y enviar el log al cargar el dashboard
+    obtenerUbicacionYEnviarLog();
+    setInterval(obtenerUbicacionYEnviarLog, 60000); // Actualizar cada 60 segundos
 });
 
 // Obtén el nombre de usuario y la ruta del store correctamente
@@ -76,22 +80,67 @@ const obtenerMensajeIndicativo = async () => {
     }
 };
 
-// Función para obtener la ubicación del usuario
-const obtenerUbicacion = async () => {
+// Función para obtener la ubicación del usuario y enviar el log
+const obtenerUbicacionYEnviarLog = async () => {
     try {
         if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(
-                (position) => {
+                async (position) => {
                     authStore.location = {
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude
                     };
                     console.log('Ubicación obtenida:', authStore.location);
+
+                    // Crear log con datos de geolocalización y usuario
+                    const logData = {
+                        json_accion: {
+                            'fecha-hora': new Date().toLocaleString('es-ES', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                                hour12: true,
+                            }),
+                            'Accion': 'Login',
+                            'Username': authStore.user?.Username || 'No disponible',
+                            'latitud': authStore.location.latitude.toString(),
+                            'longitud': authStore.location.longitude.toString(),
+                        }
+                    };
+
+                    // Obtener el token del almacenamiento local antes de enviar la solicitud
+                    const token = localStorage.getItem('token');
+                    if (token) {
+                        try {
+                            const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/logs/', logData, {
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            if (response.status === 200 || response.status === 201) {
+                                console.log('Log enviado correctamente.');
+                            } else {
+                                console.error('Error al enviar el log:', response);
+                            }
+                        } catch (error) {
+                            console.error('Error al enviar el log:', error);
+                        }
+                    } else {
+                        console.error('Token no encontrado en el almacenamiento local.');
+                    }
                 },
+                (error) => {
+                    console.error('Error al obtener la ubicación:', error.message);
+                }
             );
         }
     } catch (error) {
-        console.error('Error al obtener la ubicación:', error);
+        console.error('Error al obtener la ubicación y enviar el log:', error);
     }
 };
 
@@ -108,9 +157,6 @@ onMounted(() => {
     // Obtener el mensaje de bienvenida e indicativo al montar el componente
     obtenerMensajeBienvenida();
     obtenerMensajeIndicativo();
-
-    // Solicitar la ubicación al cargar el dashboard
-    obtenerUbicacion();
 });
 </script>
 

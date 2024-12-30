@@ -2,27 +2,31 @@
 import { useAuthStore } from '@/api-plugins/authStores';
 import axios from 'axios';
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
 
+// Variables y referencias
 const route = useRoute();
+const router = useRouter();
 const cliente = ref(null);
 const arktxList = ref([]);
 const loading = ref(false);
 const authStore = useAuthStore();
 const username = computed(() => authStore.user?.Username);
 const filters1 = ref({});
-const showConfirmButton = ref(false); // Estado para mostrar el botón de confirmar productos entregados en el header
+const showConfirmButton = ref(false);
 
 // Estado para el diálogo y el combo box
 const showDialog = ref(false);
 const selectedOption = ref(null);
+const selectedMotivo = ref(null);
 const comment = ref('');
 const options = [
     { label: 'Entregado', value: 'entregado' },
     { label: 'Parcial', value: 'parcial' },
     { label: 'No Entregado', value: 'no_entregado' }
 ];
+const motivos = ref([]);
 
 // Computed properties
 const totalItems = computed(() => arktxList.value.length);
@@ -35,70 +39,73 @@ const handleEntregar = () => {
     showDialog.value = true;
 };
 
-const handleDialogConfirm = () => {
+const handleDialogConfirm = async () => {
     showDialog.value = false;
     let estadoCliente = 'pendiente';
-    switch (selectedOption.value) {
-        case 'entregado':
-            Swal.fire({
-                title: 'Confirmar Entrega',
-                text: '¿Estás seguro que deseas confirmar la entrega de todos los productos?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Sí, confirmar',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    estadoCliente = 'atendido';
-                    guardarEstadoCliente(estadoCliente);
-                    Swal.fire('Entregado', 'Todos los productos han sido entregados.', 'success');
+
+    if (selectedOption.value === 'entregado') {
+        const entregadoData = arktxList.value.map(item => ({
+            vbeln: item.VBELN,
+            posnr: item.POSNR,
+            entregado: item.entregado
+        }));
+
+        console.log('Datos enviados para "Entregado":', entregadoData);
+
+        try {
+            await axios.post('https://calidad-yesentregas-api.yes.com.sv/entregas/update/', entregadoData, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authStore.token}`
                 }
             });
-            break;
-        case 'parcial':
-            Swal.fire({
-                title: 'Entrega Parcial',
-                input: 'textarea',
-                inputLabel: 'Comentarios',
-                inputPlaceholder: 'Escribe los comentarios aquí...',
-                inputValue: comment.value,
-                showCancelButton: true,
-                confirmButtonText: 'Guardar',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    comment.value = result.value;
-                    localStorage.setItem('entrega_parcial', result.value);
-                    arktxList.value.forEach(item => item.editable = true); // Hacer editable aquí
-                    showConfirmButton.value = true; // Mostrar el botón de confirmar productos entregados
-                    // Borrar datos de `localStorage` para que se puedan manejar los nuevos datos ingresados
-                    localStorage.removeItem(`productos_${cliente.value.KUNNR}`);
-                    estadoCliente = 'atendido';
-                    guardarEstadoCliente(estadoCliente);
-                    Swal.fire('Guardado', 'Los comentarios han sido guardados y ahora puede editar las cantidades.', 'success');
+            estadoCliente = 'atendido';
+            guardarEstadoCliente(estadoCliente);
+            Swal.fire('Entregado', 'Todos los productos han sido entregados.', 'success').then(() => {
+                router.push('/clientes'); // Redirige al menú de clientes
+            });
+        } catch (error) {
+            console.error('Error al actualizar la entrega:', error);
+            Swal.fire('Error', 'Hubo un error al actualizar la entrega.', 'error');
+        }
+    } else if (selectedOption.value === 'parcial' || selectedOption.value === 'no_entregado') {
+        if (!selectedMotivo.value) {
+            Swal.fire('Error', 'Por favor seleccione un motivo.', 'error');
+            return;
+        }
+        const tipo = selectedOption.value === 'parcial' ? 2 : 3;
+        const complementoData = {
+            vbeln: arktxList.value[0]?.VBELN || '',
+            posnr: arktxList.value[0]?.POSNR || '',
+            tipo: tipo,
+            motivo: Number(selectedMotivo.value),
+            comentario: comment.value
+        };
+
+        console.log('Datos enviados para "Parcial" o "No Entregado":', complementoData);
+
+        try {
+            await axios.post('https://calidad-yesentregas-api.yes.com.sv/entregas/complementarios/update/', complementoData, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authStore.token}`
                 }
             });
-            break;
-        case 'no_entregado':
-            Swal.fire({
-                title: 'No Entregado',
-                input: 'textarea',
-                inputLabel: 'Razón de No Entrega',
-                inputPlaceholder: 'Escribe la razón aquí...',
-                inputValue: comment.value,
-                showCancelButton: true,
-                confirmButtonText: 'Guardar',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    comment.value = result.value;
-                    localStorage.setItem('no_entregado', result.value);
-                    estadoCliente = 'pendiente';
-                    guardarEstadoCliente(estadoCliente);
-                    Swal.fire('Guardado', 'La razón ha sido guardada.', 'success');
-                }
-            });
-            break;
+            estadoCliente = selectedOption.value === 'parcial' ? 'atendido' : 'pendiente';
+            guardarEstadoCliente(estadoCliente);
+            if (selectedOption.value === 'no_entregado') {
+                Swal.fire('Guardado', 'Los datos han sido guardados.', 'success').then(() => {
+                    router.push('/clientes'); // Redirige al menú de clientes
+                });
+            } else {
+                Swal.fire('Guardado', 'Los datos han sido guardados.', 'success').then(() => {
+                    arktxList.value.forEach(item => item.editable = true); // Activar edición de productos
+                });
+            }
+        } catch (error) {
+            console.error('Error al actualizar el complemento:', error);
+            Swal.fire('Error', 'Hubo un error al actualizar el complemento.', 'error');
+        }
     }
 };
 
@@ -113,23 +120,29 @@ const guardarEstadoCliente = (estado) => {
 };
 
 // Manejar la confirmación de productos entregados
-const handleConfirmAll = () => {
-    Swal.fire({
-        title: 'Confirmar productos entregados',
-        text: '¿Estás seguro que deseas confirmar todos los productos entregados?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, confirmar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Desactivar edición y guardar en localStorage
-            arktxList.value.forEach(item => item.editable = false);
-            localStorage.setItem(`productos_${cliente.value.KUNNR}`, JSON.stringify(arktxList.value));
-            guardarEstadoCliente('atendido');
-            Swal.fire('Confirmado', 'Todos los productos entregados han sido confirmados.', 'success');
-        }
-    });
+const handleConfirmAll = async () => {
+    const entregadoData = arktxList.value.map(item => ({
+        vbeln: item.VBELN,
+        posnr: item.POSNR,
+        entregado: item.entregado
+    }));
+
+    console.log('Datos enviados para confirmación:', entregadoData);
+
+    try {
+        await axios.post('https://calidad-yesentregas-api.yes.com.sv/entregas/update/', entregadoData, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authStore.token}`
+            }
+        });
+        Swal.fire('Confirmado', 'Todos los productos han sido confirmados.', 'success').then(() => {
+            router.push('/clientes'); // Redirige al menú de clientes
+        });
+    } catch (error) {
+        console.error('Error al confirmar la entrega:', error);
+        Swal.fire('Error', 'Hubo un error al confirmar la entrega.', 'error');
+    }
 };
 
 // Manejar la edición de la cantidad entregada
@@ -137,20 +150,6 @@ const handleConfirm = (item) => {
     item.editable = false;
     // Eliminar valor anterior y aceptar el nuevo
     localStorage.setItem(`productos_${cliente.value.KUNNR}`, JSON.stringify(arktxList.value));
-};
-
-// Enviar datos a un endpoint
-const enviarDatos = async () => {
-    try {
-        const response = await axios.post('https://tu-endpoint.com/api/guardar', {
-            cliente: cliente.value,
-            productos: arktxList.value,
-            comentario: comment.value
-        });
-        Swal.fire('Enviado', 'Los datos han sido enviados correctamente.', 'success');
-    } catch (error) {
-        Swal.fire('Error', 'Hubo un error al enviar los datos.', 'error');
-    }
 };
 
 // Recuperar el cliente desde localStorage o buscarlo con el id de la URL
@@ -199,6 +198,7 @@ const cargarProductosDesdeAPI = async () => {
                     ARKTX: entrega.ARKTX,
                     FKIMG: parseFloat(entrega.FKIMG),
                     VBELN: entrega.VBELN,
+                    POSNR: entrega.POSNR,
                     entregado: entrega.FKIMG, // Inicializar con la misma cantidad
                     editable: false // Inicialmente no editable
                 }));
@@ -224,9 +224,32 @@ const cargarProductosDesdeLocalStorage = () => {
     }
 };
 
-// Watcher para mostrar el botón de confirmar productos entregados cuando se selecciona "Parcial"
-watch(selectedOption, (newValue) => {
+// Función para obtener los motivos desde la API
+const obtenerMotivos = async () => {
+    try {
+        const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/motivos/');
+        console.log('Motivos obtenidos:', response.data);
+        // Asegúrate de que response.data sea un array antes de mapear
+        if (Array.isArray(response.data)) {
+            motivos.value = response.data.map(motivo => ({
+                label: motivo.descripcion, // Usar 'descripcion' para el label
+                value: motivo.id
+            }));
+        } else {
+            console.error('La respuesta de la API no es un array:', response.data);
+        }
+    } catch (error) {
+        console.error('Error al obtener los motivos:', error);
+        Swal.fire('Error', 'Hubo un problema al obtener los motivos.', 'error');
+    }
+};
+
+// Watcher para mostrar el botón de confirmar productos entregados cuando se selecciona "Parcial" y cargar motivos
+watch(selectedOption, async (newValue) => {
     showConfirmButton.value = (newValue === 'parcial');
+    if (newValue === 'parcial' || newValue === 'no_entregado') {
+        await obtenerMotivos();
+    }
 });
 
 onMounted(() => {
@@ -235,6 +258,7 @@ onMounted(() => {
     cargarProductosDesdeLocalStorage();
 });
 </script>
+
 <template>
     <div>
         <div v-if="cliente">
@@ -312,7 +336,7 @@ onMounted(() => {
                     </template>
                 </Column>
             </DataTable>
-            <Button label="Enviar Datos" icon="pi pi-send" class="mt-4" @click="enviarDatos" />
+            <Button label="Enviar Datos" icon="pi pi-send" class="mt-4" @click="handleConfirmAll" />
         </div>
         <div v-else>
             <p>Cliente no encontrado.</p>
@@ -321,7 +345,8 @@ onMounted(() => {
         <!-- Dialog Modal -->
         <Dialog header="Seleccionar Opción" v-model:visible="showDialog" :modal="true" :closable="false">
             <Dropdown v-model="selectedOption" :options="options" option-label="label" option-value="value" placeholder="Seleccione una opción" class="w-full mb-3" />
-            <InputTextarea v-model="comment" placeholder="Ingrese los comentarios aquí..." rows="3" class="w-full mb-3" />
+            <Dropdown v-if="selectedOption === 'parcial' || selectedOption === 'no_entregado'" v-model="selectedMotivo" :options="motivos" option-label="label" option-value="value" placeholder="Seleccione un motivo" class="w-full mb-3" />
+            <InputText v-if="selectedMotivo && (selectedOption === 'parcial' || selectedOption === 'no_entregado')" v-model="comment" placeholder="Ingrese los comentarios aquí..." rows="3" class="w-full mb-3" />
             <div class="flex justify-content-end">
                 <Button label="Cancelar" icon="pi pi-times" class="p-button-text" @click="showDialog = false" />
                 <Button label="Aceptar" icon="pi pi-check" class="p-button-text" @click="handleDialogConfirm" />

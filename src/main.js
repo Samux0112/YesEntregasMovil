@@ -13,6 +13,7 @@ import '@/api-plugins/limpiarLocal'; // Importa tu store de autenticación
 import '@/assets/styles.scss';
 import '@/assets/tailwind.css';
 
+
 const app = createApp(App);
 
 // Crear Pinia
