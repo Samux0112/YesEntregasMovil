@@ -91,13 +91,29 @@ const handleDialogConfirm = async () => {
                     'Authorization': `Bearer ${authStore.token}`
                 }
             });
-            estadoCliente = selectedOption.value === 'parcial' ? 'atendido' : 'pendiente';
-            guardarEstadoCliente(estadoCliente);
+
             if (selectedOption.value === 'no_entregado') {
+                const noEntregadoData = arktxList.value.map(item => ({
+                    vbeln: item.VBELN,
+                    posnr: item.POSNR,
+                    entregado: 0 // Enviar 0 cuando no entregado
+                }));
+
+                console.log('Datos enviados para "No Entregado":', noEntregadoData);
+
+                await axios.post('https://calidad-yesentregas-api.yes.com.sv/entregas/update/', noEntregadoData, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authStore.token}`
+                    }
+                });
+
                 Swal.fire('Guardado', 'Los datos han sido guardados.', 'success').then(() => {
                     router.push('/clientes'); // Redirige al menú de clientes
                 });
             } else {
+                estadoCliente = 'atendido';
+                guardarEstadoCliente(estadoCliente);
                 Swal.fire('Guardado', 'Los datos han sido guardados.', 'success').then(() => {
                     arktxList.value.forEach(item => item.editable = true); // Activar edición de productos
                 });
