@@ -92,14 +92,15 @@ const handleDialogConfirm = async () => {
                 }
             });
 
-            if (selectedOption.value === 'no_entregado') {
+            // Verificar si el motivo es 1 o 4
+            if (selectedOption.value === 'no_entregado' || (selectedOption.value === 'parcial' && (selectedMotivo.value === 1 || selectedMotivo.value === 4))) {
                 const noEntregadoData = arktxList.value.map(item => ({
                     vbeln: item.VBELN,
                     posnr: item.POSNR,
-                    entregado: 0 // Enviar 0 cuando no entregado
+                    entregado: 0 // Enviar 0 cuando no entregado o parcial con motivo 1 o 4
                 }));
 
-                console.log('Datos enviados para "No Entregado":', noEntregadoData);
+                console.log('Datos enviados para "No Entregado" o "Parcial" con motivo 1 o 4:', noEntregadoData);
 
                 await axios.post('https://calidad-yesentregas-api.yes.com.sv/entregas/update/', noEntregadoData, {
                     headers: {
@@ -108,6 +109,8 @@ const handleDialogConfirm = async () => {
                     }
                 });
 
+                estadoCliente = 'pendiente';
+                guardarEstadoCliente(estadoCliente);
                 Swal.fire('Guardado', 'Los datos han sido guardados.', 'success').then(() => {
                     router.push('/clientes'); // Redirige al menú de clientes
                 });
@@ -337,16 +340,13 @@ onMounted(() => {
                     </template>
                     <template #body="slotProps">
                         <div class="flex items-center">
-                            <InputNumber 
+                            <!-- posible error de colocar datos aca en el movil -->
+                            <InputText
                                 v-model="slotProps.data.entregado" 
-                                mode="decimal" 
+                                class="small-input" 
                                 :disabled="!slotProps.data.editable"
-                            />
-                            <Button 
-                                icon="pi pi-check" 
-                                class="ml-2" 
-                                :disabled="!slotProps.data.editable" 
-                                @click="handleConfirm(slotProps.data)" 
+                                :minFractionDigits="0"
+                                :maxFractionDigits="0"
                             />
                         </div>
                     </template>
