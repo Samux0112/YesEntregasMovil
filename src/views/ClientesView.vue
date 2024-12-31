@@ -115,12 +115,20 @@ const mostrarSubmenu = (cliente) => {
 };
 
 // Función para enviar la georreferencia
-const enviarGeorreferencia = async (kunnr, latitud, longitud) => {
+const enviarGeorreferencia = async (kunnr, latitud, longitud, files) => {
+    const formData = new FormData();
+    formData.append('kunnr', kunnr);
+    formData.append('latitud', latitud);
+    formData.append('longitud', longitud);
+    for (const file of files) {
+        formData.append('files', file);
+    }
+
     try {
-        const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/clientes/update/', {
-            kunnr,
-            latitud,
-            longitud
+        const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/clientes/update/', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
         });
         Swal.fire('Guardado', 'La georreferencia ha sido guardada correctamente.', 'success');
         console.log('Respuesta de la API:', response.data);
@@ -139,22 +147,24 @@ const handleSubmenuClick = (option) => {
                 html: `
                     <p>Latitud: ${currentLatitude.value}</p>
                     <p>Longitud: ${currentLongitude.value}</p>
-                    <input type="file" id="foto" class="swal2-file">
+                    <input type="file" id="foto" class="swal2-file" accept="image/*" capture="camera">
+                    <input type="file" id="archivos" class="swal2-file" multiple>
                 `,
                 showCancelButton: true,
                 confirmButtonText: 'Guardar',
                 cancelButtonText: 'Cancelar',
                 preConfirm: () => {
                     const foto = Swal.getPopup().querySelector('#foto').files[0];
-                    if (!currentLatitude.value || !currentLongitude.value) {
+                    const archivos = Swal.getPopup().querySelector('#archivos').files;
+                    if (!currentLatitude.value || !currentLongitude.value || !foto) {
                         Swal.showValidationMessage(`Por favor completa todos los campos`);
                     }
-                    return { latitud: currentLatitude.value, longitud: currentLongitude.value, foto };
+                    return { latitud: currentLatitude.value, longitud: currentLongitude.value, files: [foto, ...archivos] };
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
                     // Enviar la georreferencia al servidor
-                    enviarGeorreferencia(submenuCliente.value.KUNNR, result.value.latitud, result.value.longitud);
+                    enviarGeorreferencia(submenuCliente.value.KUNNR, result.value.latitud, result.value.longitud, result.value.files);
                 }
             });
             break;
