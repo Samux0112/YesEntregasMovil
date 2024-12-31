@@ -147,17 +147,17 @@ const handleSubmenuClick = (option) => {
                 html: `
                     <p>Latitud: ${currentLatitude.value}</p>
                     <p>Longitud: ${currentLongitude.value}</p>
-                    <input type="file" id="foto" class="swal2-file" accept="image/*" capture="camera">
+                    <input type="file" id="foto" class="swal2-file" accept="image/*" capture="camera" multiple>
                 `,
                 showCancelButton: true,
                 confirmButtonText: 'Guardar',
                 cancelButtonText: 'Cancelar',
                 preConfirm: () => {
-                    const foto = Swal.getPopup().querySelector('#foto').files[0];
-                    if (!currentLatitude.value || !currentLongitude.value || !foto) {
+                    const fotos = Swal.getPopup().querySelector('#foto').files;
+                    if (!currentLatitude.value || !currentLongitude.value || fotos.length === 0) {
                         Swal.showValidationMessage(`Por favor completa todos los campos`);
                     }
-                    return { latitud: currentLatitude.value, longitud: currentLongitude.value, files: [foto] };
+                    return { latitud: currentLatitude.value, longitud: currentLongitude.value, files: Array.from(fotos) };
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
