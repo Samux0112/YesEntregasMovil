@@ -26,9 +26,6 @@ const handleLogout = () => {
 
         <div class="layout-topbar-actions">
             <div class="layout-config-menu">
-                <button type="button" class="layout-topbar-action" @click="toggleDarkMode">
-                    <i :class="['pi', { 'pi-moon': isDarkTheme, 'pi-sun': !isDarkTheme }]"></i>
-                </button>
                     <AppConfigurator />
                 <div class="relative">
                     <button type="button" class="layout-topbar-action btn btn-danger" @click="handleLogout">
