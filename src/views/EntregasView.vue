@@ -327,7 +327,7 @@ onMounted(() => {
                 <Column field="FKIMG" header="Cantidad" style="min-width: 12rem" />
                 <Column 
                     field="entregado" 
-                    header="Confirmar entregados" 
+                    header="Confirmar" 
                     style="min-width: 12rem"
                 >
                     <template #header>
@@ -352,12 +352,10 @@ onMounted(() => {
                     </template>
                 </Column>
             </DataTable>
-            <Button label="Enviar Datos" icon="pi pi-send" class="mt-4" @click="handleConfirmAll" />
         </div>
         <div v-else>
             <p>Cliente no encontrado.</p>
         </div>
-
         <!-- Dialog Modal -->
         <Dialog header="Seleccionar Opción" v-model:visible="showDialog" :modal="true" :closable="false">
             <Dropdown v-model="selectedOption" :options="options" option-label="label" option-value="value" placeholder="Seleccione una opción" class="w-full mb-3" />

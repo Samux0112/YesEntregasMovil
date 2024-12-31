@@ -148,18 +148,16 @@ const handleSubmenuClick = (option) => {
                     <p>Latitud: ${currentLatitude.value}</p>
                     <p>Longitud: ${currentLongitude.value}</p>
                     <input type="file" id="foto" class="swal2-file" accept="image/*" capture="camera">
-                    <input type="file" id="archivos" class="swal2-file" multiple>
                 `,
                 showCancelButton: true,
                 confirmButtonText: 'Guardar',
                 cancelButtonText: 'Cancelar',
                 preConfirm: () => {
                     const foto = Swal.getPopup().querySelector('#foto').files[0];
-                    const archivos = Swal.getPopup().querySelector('#archivos').files;
                     if (!currentLatitude.value || !currentLongitude.value || !foto) {
                         Swal.showValidationMessage(`Por favor completa todos los campos`);
                     }
-                    return { latitud: currentLatitude.value, longitud: currentLongitude.value, files: [foto, ...archivos] };
+                    return { latitud: currentLatitude.value, longitud: currentLongitude.value, files: [foto] };
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -270,7 +268,7 @@ onMounted(() => {
                         <div class="flex flex-col">
                             <div v-for="(cliente) in slotProps.items" :key="cliente.KUNNR">
                                 <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4"
-                                     :style="{ backgroundColor: cliente.estado === 'atendido' ? '#d4edda' : '#f8d7da' }">
+                                    :style="{ backgroundColor: cliente.estado === 'atendido' ? '#d4edda' : '#f8d7da' }">
                                     <div class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6">
                                         <div class="flex flex-row md:flex-col justify-between items-start gap-2">
                                             <div>
