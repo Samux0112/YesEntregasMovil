@@ -1,4 +1,4 @@
-import { computed, reactive } from 'vue';
+import { computed, reactive, onMounted, watch } from 'vue';
 
 const layoutConfig = reactive({
     preset: 'Aura',
@@ -34,7 +34,7 @@ export function useLayout() {
 
     const executeDarkModeToggle = () => {
         layoutConfig.darkTheme = !layoutConfig.darkTheme;
-        document.documentElement.classList.toggle('app-dark');
+        document.documentElement.classList.toggle('app-dark', layoutConfig.darkTheme);
     };
 
     const toggleMenu = () => {
@@ -56,6 +56,22 @@ export function useLayout() {
     const getPrimary = computed(() => layoutConfig.primary);
 
     const getSurface = computed(() => layoutConfig.surface);
+
+    // Detect system dark mode preference and update layoutConfig accordingly
+    const updateDarkModeFromSystem = () => {
+        const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        layoutConfig.darkTheme = isSystemDark;
+        document.documentElement.classList.toggle('app-dark', isSystemDark);
+    };
+
+    onMounted(() => {
+        updateDarkModeFromSystem();
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateDarkModeFromSystem);
+    });
+
+    watch(() => layoutConfig.darkTheme, (newVal) => {
+        document.documentElement.classList.toggle('app-dark', newVal);
+    });
 
     return {
         layoutConfig,

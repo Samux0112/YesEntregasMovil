@@ -102,6 +102,11 @@ watch([searchTerm, estadoFiltro], () => {
 });
 
 const irAEntregas = (cliente) => {
+    if (!cliente.LATITUD || !cliente.LONGITUD) {
+        Swal.fire('Error', 'No hay ubicación para el cliente.', 'error');
+        return;
+    }
+
     localStorage.setItem('clienteSeleccionado', JSON.stringify(cliente));
     const clienteKunnr = String(cliente.KUNNR); // Asegúrate de convertir KUNNR a string
     router.push({ name: 'entregas', params: { id: clienteKunnr } });
@@ -166,7 +171,6 @@ const enviarGeorreferencia = async (kunnr, latitud, longitud, files) => {
 const handleSubmenuClick = async (option) => {
     switch (option.value) {
         case 'georreferencia':
-            obtenerGeolocalizacion();
             const fotoUrl = await tomarFoto();
             if (fotoUrl) {
                 Swal.fire({
@@ -283,7 +287,7 @@ onMounted(() => {
                                     <div class="flex flex-col gap-6 mt-6">
                                         <div class="flex gap-2">
                                             <Button icon="pi pi-th-large" label="Más" class="flex-auto whitespace-nowrap" @click="() => mostrarSubmenu(cliente)" />
-                                            <Button icon="pi pi-briefcase" label="Visitar" class="flex-auto md:flex-initial whitespace-nowrap" @click="irAEntregas(cliente)" />
+                                            <Button icon="pi pi-briefcase" label="Visitar" class="flex-auto md:flex-initial whitespace-nowrap" @click="() => irAEntregas(cliente)" />
                                         </div>
                                     </div>
                                 </div>
@@ -314,7 +318,7 @@ onMounted(() => {
                                         <div class="flex flex-col md:items-end gap-8">
                                             <div class="flex flex-row-reverse md:flex-row gap-2">
                                                 <Button icon="pi pi-th-large" label="Más" class="flex-auto md:flex-initial whitespace-nowrap" @click="() => mostrarSubmenu(cliente)" />
-                                                <Button icon="pi pi-briefcase" label="Visitar" class="flex-auto md:flex-initial whitespace-nowrap" @click="irAEntregas(cliente)" />
+                                                <Button icon="pi pi-briefcase" label="Visitar" class="flex-auto md:flex-initial whitespace-nowrap" @click="() => irAEntregas(cliente)" />
                                             </div>
                                         </div>
                                     </div>
