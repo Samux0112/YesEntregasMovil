@@ -4,6 +4,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 const router = useRouter();
 const options = ref(['list', 'grid']);
@@ -28,6 +29,9 @@ const submenuOptions = [
 // Variables para geolocalización
 const currentLatitude = ref(null);
 const currentLongitude = ref(null);
+
+// Variable para almacenar la URL de la imagen
+const imageUrl = ref(null);
 
 const cargarClientes = async () => {
     try {
@@ -114,6 +118,26 @@ const mostrarSubmenu = (cliente) => {
     }
 };
 
+// Función para tomar foto
+const tomarFoto = async () => {
+    try {
+        const image = await Camera.getPhoto({
+            quality: 90,
+            allowEditing: false,
+            resultType: CameraResultType.Uri,
+            source: CameraSource.Camera
+        });
+
+        imageUrl.value = image.webPath;
+        console.log('Foto tomada:', imageUrl.value);
+
+        return imageUrl.value;
+    } catch (error) {
+        console.error('Error al tomar la foto:', error);
+        return null;
+    }
+};
+
 // Función para enviar la georreferencia
 const enviarGeorreferencia = async (kunnr, latitud, longitud, files) => {
     const formData = new FormData();
@@ -139,32 +163,35 @@ const enviarGeorreferencia = async (kunnr, latitud, longitud, files) => {
 };
 
 // Funciones para el submenú
-const handleSubmenuClick = (option) => {
+const handleSubmenuClick = async (option) => {
     switch (option.value) {
         case 'georreferencia':
-            Swal.fire({
-                title: 'Tomar Georreferencia',
-                html: `
-                    <p>Latitud: ${currentLatitude.value}</p>
-                    <p>Longitud: ${currentLongitude.value}</p>
-                    <input type="file" id="foto" class="swal2-file" accept="image/*" capture="camera" multiple>
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'Guardar',
-                cancelButtonText: 'Cancelar',
-                preConfirm: () => {
-                    const fotos = Swal.getPopup().querySelector('#foto').files;
-                    if (!currentLatitude.value || !currentLongitude.value || fotos.length === 0) {
-                        Swal.showValidationMessage(`Por favor completa todos los campos`);
+            obtenerGeolocalizacion();
+            const fotoUrl = await tomarFoto();
+            if (fotoUrl) {
+                Swal.fire({
+                    title: 'Tomar Georreferencia',
+                    html: `
+                        <p>Latitud: ${currentLatitude.value}</p>
+                        <p>Longitud: ${currentLongitude.value}</p>
+                        <img src="${fotoUrl}" alt="Foto tomada" style="width: 100%; height: auto;" />
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Guardar',
+                    cancelButtonText: 'Cancelar',
+                    preConfirm: () => {
+                        if (!currentLatitude.value || !currentLongitude.value || !fotoUrl) {
+                            Swal.showValidationMessage(`Por favor completa todos los campos`);
+                        }
+                        return { latitud: currentLatitude.value, longitud: currentLongitude.value, files: [fotoUrl] };
                     }
-                    return { latitud: currentLatitude.value, longitud: currentLongitude.value, files: Array.from(fotos) };
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Enviar la georreferencia al servidor
-                    enviarGeorreferencia(submenuCliente.value.KUNNR, result.value.latitud, result.value.longitud, result.value.files);
-                }
-            });
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Enviar la georreferencia al servidor
+                        enviarGeorreferencia(submenuCliente.value.KUNNR, result.value.latitud, result.value.longitud, result.value.files);
+                    }
+                });
+            }
             break;
         case 'ruta':
             const urlWaze = `https://www.waze.com/ul?ll=${currentLatitude.value},${currentLongitude.value}&navigate=yes`;
