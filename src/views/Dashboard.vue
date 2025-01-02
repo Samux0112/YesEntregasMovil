@@ -96,14 +96,12 @@ const obtenerUbicacionYEnviarLog = async () => {
                     const logData = {
                         json_accion: {
                             'fecha-hora': new Date().toLocaleString('es-ES', {
-                                weekday: 'long',
+                                day: '2-digit',
+                                month: '2-digit',
                                 year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
                                 hour: '2-digit',
                                 minute: '2-digit',
                                 second: '2-digit',
-                                hour12: true,
                             }),
                             'Accion': 'Login',
                             'Username': authStore.user?.Username || 'No disponible',

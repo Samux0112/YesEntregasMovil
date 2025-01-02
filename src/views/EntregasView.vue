@@ -132,11 +132,7 @@ const actualizarClientes = (estado) => {
     let clientes = JSON.parse(localStorage.getItem('clientes')) || [];
     let clienteIndex = clientes.findIndex(c => c.KUNNR === cliente.value.KUNNR);
     if (clienteIndex !== -1) {
-        if (estado === 'atendido') {
-            clientes.splice(clienteIndex, 1); // Eliminar cliente atendido
-        } else {
-            clientes[clienteIndex].estado = estado;
-        }
+        clientes[clienteIndex].estado = estado; // Actualizar el estado del cliente
         localStorage.setItem('clientes', JSON.stringify(clientes));
     }
 };

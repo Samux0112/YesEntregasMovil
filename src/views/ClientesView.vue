@@ -3,7 +3,7 @@ import { useAuthStore } from '@/api-plugins/authStores';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 const router = useRouter();
@@ -14,7 +14,7 @@ const clientesFiltrados = ref([]);
 const authStore = useAuthStore();
 const username = computed(() => authStore.user?.Username || 'Invitado');
 const clientes = ref([]);
-const estadoFiltro = ref('Todos'); // Estado del filtro, inicializado en 'Todos'
+const estadoFiltro = ref('Pendiente'); // Estado del filtro, inicializado en 'Pendiente'
 
 // Estado para el submenú
 const showSubmenu = ref(false);
@@ -33,6 +33,7 @@ const currentLongitude = ref(null);
 // Variable para almacenar la URL de la imagen
 const imageUrl = ref(null);
 
+// Cargar clientes desde la API
 const cargarClientes = async () => {
     try {
         const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/clientes/', {
@@ -47,7 +48,8 @@ const cargarClientes = async () => {
             localStorage.setItem('clientes', JSON.stringify(clientesConEstado));
             localStorage.setItem('ultimaCargaClientes', new Date().toISOString()); // Guardar la fecha de la última carga
             clientes.value = clientesConEstado;
-            clientesFiltrados.value = clientesConEstado;
+            // Filtrar clientes pendientes inicialmente
+            clientesFiltrados.value = clientesConEstado.filter(cliente => cliente.estado === 'pendiente');
 
             Swal.fire({
                 title: 'Clientes cargados',
@@ -74,14 +76,17 @@ const cargarClientes = async () => {
     }
 };
 
+// Mostrar clientes guardados en localStorage
 const mostrarClientesGuardados = () => {
     const clientesGuardados = localStorage.getItem('clientes');
     if (clientesGuardados) {
         clientes.value = JSON.parse(clientesGuardados);
-        clientesFiltrados.value = JSON.parse(clientesGuardados);
+        // Filtrar clientes pendientes inicialmente
+        clientesFiltrados.value = clientes.value.filter(cliente => cliente.estado === 'pendiente');
     }
 };
 
+// Verificar y cargar clientes si no se han cargado hoy
 const verificarYcargarClientes = async () => {
     const ultimaCargaClientes = localStorage.getItem('ultimaCargaClientes');
     const hoy = new Date().toISOString().split('T')[0]; // Fecha actual en formato YYYY-MM-DD
@@ -93,13 +98,81 @@ const verificarYcargarClientes = async () => {
     }
 };
 
+// Watcher para filtrar clientes por nombre y estado
 watch([searchTerm, estadoFiltro], () => {
     clientesFiltrados.value = clientes.value.filter((cliente) => {
         const nombreCoincide = cliente.NAME1.toLowerCase().includes(searchTerm.value.toLowerCase()) || cliente.NAME2.toLowerCase().includes(searchTerm.value.toLowerCase());
-        const estadoCoincide = estadoFiltro.value === 'Todos' ? true : cliente.estado === estadoFiltro.value.toLowerCase();
+        const estadoCoincide = estadoFiltro.value === 'Todos' ? true : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
         return nombreCoincide && estadoCoincide;
     });
 });
+
+// Función para calcular la distancia entre dos puntos geográficos usando la fórmula de Haversine
+const calcularDistancia = (lat1, lon1, lat2, lon2) => {
+    const R = 6371e3; // Radio de la Tierra en metros
+    const φ1 = lat1 * Math.PI / 180; // φ, λ en radianes
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    const distancia = R * c; // En metros
+    return distancia;
+};
+
+// Obtener la geolocalización actual del usuario y almacenarla
+const obtenerYGuardarGeolocalizacion = () => {
+    return new Promise((resolve) => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    localStorage.setItem('userLatitude', lat);
+                    localStorage.setItem('userLongitude', lon);
+                    console.log(`Ubicación obtenida y guardada: Latitud ${lat}, Longitud ${lon}`);
+                    resolve({ lat, lon });
+                },
+                (error) => {
+                    console.error('Error obteniendo la geolocalización:', error);
+                    // Resolver con valores predeterminados si hay un error
+                    resolve({ lat, lon });
+                }
+            );
+        } else {
+            console.error('Geolocalización no soportada por el navegador');
+            // Resolver con valores predeterminados si la geolocalización no es soportada
+            resolve({ lat, lon });
+        }
+    });
+};
+
+// Obtener la geolocalización actual del usuario sin almacenar
+const obtenerGeolocalizacion = () => {
+    return new Promise((resolve, reject) => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    console.log(`Ubicación obtenida: Latitud ${lat}, Longitud ${lon}`);
+                    resolve({ lat, lon });
+                },
+                (error) => {
+                    console.error('Error obteniendo la geolocalización:', error);
+                    reject(error);
+                }
+            );
+        } else {
+            console.error('Geolocalización no soportada por el navegador');
+            reject(new Error('Geolocalización no soportada por el navegador'));
+        }
+    });
+};
 
 //Me lleva a entregas
 const irAEntregas = (cliente) => {
@@ -113,16 +186,50 @@ const irAEntregas = (cliente) => {
         return;
     }
 
+    // Obtener la ubicación del usuario desde el localStorage
+    const userLat = parseFloat(localStorage.getItem('userLatitude'));
+    const userLon = parseFloat(localStorage.getItem('userLongitude'));
+
+    if (isNaN(userLat) || isNaN(userLon)) {
+        Swal.fire({
+            title: 'Error',
+            text: 'No se pudo obtener la ubicación actual del usuario.',
+            icon: 'error',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    // Calcular la distancia entre el usuario y el cliente
+    const clienteLat = parseFloat(cliente.LATITUD);
+    const clienteLon = parseFloat(cliente.LONGITUD);
+
+    console.log(`Calculando distancia entre usuario y cliente: (${userLat}, ${userLon}) y (${clienteLat}, ${clienteLon})`);
+
+    const distancia = calcularDistancia(clienteLat, clienteLon, userLat, userLon);
+
+    if (distancia > 100) {
+        // Mostrar un mensaje de advertencia si la distancia es mayor a 100 metros
+        Swal.fire({
+            title: 'Advertencia',
+            text: 'Estás a más de 100 metros del cliente.',
+            icon: 'warning',
+            confirmButtonText: 'Entendido'
+        });
+        return; // Salir de la función si la distancia es mayor a 100 metros
+    }
+
     localStorage.setItem('clienteSeleccionado', JSON.stringify(cliente));
     const clienteKunnr = String(cliente.KUNNR); // Asegúrate de convertir KUNNR a string
     router.push({ name: 'entregas', params: { id: clienteKunnr } });
 };
+
 // Nueva función para mostrar el submenú
-const mostrarSubmenu = (cliente) => {
+const mostrarSubmenu = async (cliente) => {
     if (cliente) {
         submenuCliente.value = cliente;
         showSubmenu.value = true;
-        obtenerGeolocalizacion();
+        await obtenerYGuardarGeolocalizacion();
     } else {
         console.error('Cliente es null');
     }
@@ -179,57 +286,29 @@ const enviarGeorreferencia = async (kunnr, latitud, longitud, file) => {
     }
 };
 
-// Función para calcular la distancia entre dos puntos geográficos usando la fórmula de Haversine
-const calcularDistancia = (lat1, lon1, lat2, lon2) => {
-    const R = 6371e3; // Radio de la Tierra en metros
-    const φ1 = lat1 * Math.PI / 180; // φ, λ en radianes
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    const distancia = R * c; // En metros
-    return distancia;
-};
-
 // Funciones para el submenú
 const handleSubmenuClick = async (option) => {
     switch (option.value) {
         case 'georreferencia':
-            obtenerGeolocalizacion();
             const fotoFile = await tomarFoto(submenuCliente.value.KUNNR);
             if (fotoFile) {
-                const clienteLat = parseFloat(submenuCliente.value.LATITUD);
-                const clienteLon = parseFloat(submenuCliente.value.LONGITUD);
-                const userLat = parseFloat(currentLatitude.value);
-                const userLon = parseFloat(currentLongitude.value);
-
-                const distancia = calcularDistancia(clienteLat, clienteLon, userLat, userLon);
-
-                if (distancia > 100) {
-                    // Mostrar un mensaje simple si la distancia es mayor a 100 metros
-                    Swal.fire('Advertencia', 'Estás a más de 100 metros del cliente.', 'warning');
-                }
-
+                const userLat = parseFloat(localStorage.getItem('userLatitude'));
+                const userLon = parseFloat(localStorage.getItem('userLongitude'));
                 Swal.fire({
                     title: 'Tomar Georreferencia',
                     html: `
-                        <p>Latitud: ${currentLatitude.value}</p>
-                        <p>Longitud: ${currentLongitude.value}</p>
+                        <p>Latitud: ${userLat}</p>
+                        <p>Longitud: ${userLon}</p>
                         <img src="${imageUrl.value}" alt="Foto tomada" style="width: 100%; height: auto;" />
                     `,
                     showCancelButton: true,
                     confirmButtonText: 'Guardar',
                     cancelButtonText: 'Cancelar',
                     preConfirm: () => {
-                        if (!currentLatitude.value || !currentLongitude.value || !fotoFile) {
+                        if (isNaN(userLat) || isNaN(userLon) || !fotoFile) {
                             Swal.showValidationMessage(`Por favor completa todos los campos`);
                         }
-                        return { latitud: currentLatitude.value, longitud: currentLongitude.value, file: fotoFile };
+                        return { latitud: userLat, longitud: userLon, file: fotoFile };
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
@@ -247,7 +326,7 @@ const handleSubmenuClick = async (option) => {
                 html: `
                     <button onclick="window.open('${urlWaze}', '_blank')" class="swal2-confirm swal2-styled">Abrir en Waze
                     </button><br>
-                    <button onclick="window.open('${urlMaps}', '_blank')" class="swal2-confirm swal2-styled"> Abrir en Google Maps
+                    <button onclick="window.open('${urlMaps}', '_blank')" class="swal2-confirm swal2-styled">Abrir en Google Maps
                     </button>
                 `,
                 showCancelButton: true,
@@ -266,22 +345,9 @@ const handleSubmenuClick = async (option) => {
     showSubmenu.value = false;
 };
 
-// Obtener la geolocalización actual del usuario
-const obtenerGeolocalizacion = () => {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((position) => {
-            currentLatitude.value = position.coords.latitude;
-            currentLongitude.value = position.coords.longitude;
-        }, (error) => {
-            console.error('Error obteniendo la geolocalización:', error);
-        });
-    } else {
-        console.error('Geolocalización no soportada por el navegador');
-    }
-};
-
 onMounted(() => {
     verificarYcargarClientes();
+    obtenerYGuardarGeolocalizacion(); // Obtener y guardar la ubicación del usuario al montar el componente
 });
 </script>
 <template>
@@ -294,7 +360,7 @@ onMounted(() => {
 
             <!-- Filtro por estado -->
             <div class="mt-4">
-                <Dropdown v-model="estadoFiltro" :options="['Todos', 'Atendido', 'Pendiente']" placeholder="Filtrar por estado" class="w-full p-2 border rounded mb-4"/>
+                <Dropdown v-model="estadoFiltro" :options="[ 'Pendiente','Atendido','Todos']" placeholder="Filtrar por estado" class="w-full p-2 border rounded mb-4"/>
             </div>
 
             <!-- Mostrar clientes en DataView -->
