@@ -101,9 +101,15 @@ watch([searchTerm, estadoFiltro], () => {
     });
 });
 
+//Me lleva a entregas
 const irAEntregas = (cliente) => {
     if (!cliente.LATITUD || !cliente.LONGITUD) {
-        Swal.fire('Error', 'No hay ubicación para el cliente.', 'error');
+        Swal.fire({
+            title: 'Ubicación no disponible',
+            text: 'El cliente no tiene una ubicación registrada. Puedes tomar la georreferencia desde el botón más y actualizar la información del cliente.',
+            icon: 'info',
+            confirmButtonText: 'Entendido'
+        });
         return;
     }
 
@@ -111,7 +117,6 @@ const irAEntregas = (cliente) => {
     const clienteKunnr = String(cliente.KUNNR); // Asegúrate de convertir KUNNR a string
     router.push({ name: 'entregas', params: { id: clienteKunnr } });
 };
-
 // Nueva función para mostrar el submenú
 const mostrarSubmenu = (cliente) => {
     if (cliente) {
@@ -124,7 +129,7 @@ const mostrarSubmenu = (cliente) => {
 };
 
 // Función para tomar foto
-const tomarFoto = async () => {
+const tomarFoto = async (kunnr) => {
     try {
         const image = await Camera.getPhoto({
             quality: 90,
@@ -133,10 +138,14 @@ const tomarFoto = async () => {
             source: CameraSource.Camera
         });
 
-        imageUrl.value = image.webPath;
+        const response = await fetch(image.webPath);
+        const blob = await response.blob();
+
+        const file = new File([blob], `${kunnr}.jpg`, { type: "image/jpeg" });
+        imageUrl.value = URL.createObjectURL(file);
         console.log('Foto tomada:', imageUrl.value);
 
-        return imageUrl.value;
+        return file;
     } catch (error) {
         console.error('Error al tomar la foto:', error);
         return null;
@@ -144,13 +153,13 @@ const tomarFoto = async () => {
 };
 
 // Función para enviar la georreferencia
-const enviarGeorreferencia = async (kunnr, latitud, longitud, files) => {
+const enviarGeorreferencia = async (kunnr, latitud, longitud, file) => {
     const formData = new FormData();
     formData.append('kunnr', kunnr);
     formData.append('latitud', latitud);
     formData.append('longitud', longitud);
-    for (const file of files) {
-        formData.append('files', file);
+    if (file) {
+        formData.append('file', file);
     }
 
     try {
@@ -161,38 +170,71 @@ const enviarGeorreferencia = async (kunnr, latitud, longitud, files) => {
         });
         Swal.fire('Guardado', 'La georreferencia ha sido guardada correctamente.', 'success');
         console.log('Respuesta de la API:', response.data);
+
+        // Recargar la lista completa de clientes para obtener la información actualizada
+        await cargarClientes(); // Esto actualizará el localStorage con la nueva información
     } catch (error) {
         console.error('Error al enviar la georreferencia:', error);
         Swal.fire('Error', 'Hubo un problema al guardar la georreferencia.', 'error');
     }
 };
 
+// Función para calcular la distancia entre dos puntos geográficos usando la fórmula de Haversine
+const calcularDistancia = (lat1, lon1, lat2, lon2) => {
+    const R = 6371e3; // Radio de la Tierra en metros
+    const φ1 = lat1 * Math.PI / 180; // φ, λ en radianes
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    const distancia = R * c; // En metros
+    return distancia;
+};
+
 // Funciones para el submenú
 const handleSubmenuClick = async (option) => {
     switch (option.value) {
         case 'georreferencia':
-            const fotoUrl = await tomarFoto();
-            if (fotoUrl) {
+            obtenerGeolocalizacion();
+            const fotoFile = await tomarFoto(submenuCliente.value.KUNNR);
+            if (fotoFile) {
+                const clienteLat = parseFloat(submenuCliente.value.LATITUD);
+                const clienteLon = parseFloat(submenuCliente.value.LONGITUD);
+                const userLat = parseFloat(currentLatitude.value);
+                const userLon = parseFloat(currentLongitude.value);
+
+                const distancia = calcularDistancia(clienteLat, clienteLon, userLat, userLon);
+
+                if (distancia > 100) {
+                    // Mostrar un mensaje simple si la distancia es mayor a 100 metros
+                    Swal.fire('Advertencia', 'Estás a más de 100 metros del cliente.', 'warning');
+                }
+
                 Swal.fire({
                     title: 'Tomar Georreferencia',
                     html: `
                         <p>Latitud: ${currentLatitude.value}</p>
                         <p>Longitud: ${currentLongitude.value}</p>
-                        <img src="${fotoUrl}" alt="Foto tomada" style="width: 100%; height: auto;" />
+                        <img src="${imageUrl.value}" alt="Foto tomada" style="width: 100%; height: auto;" />
                     `,
                     showCancelButton: true,
                     confirmButtonText: 'Guardar',
                     cancelButtonText: 'Cancelar',
                     preConfirm: () => {
-                        if (!currentLatitude.value || !currentLongitude.value || !fotoUrl) {
+                        if (!currentLatitude.value || !currentLongitude.value || !fotoFile) {
                             Swal.showValidationMessage(`Por favor completa todos los campos`);
                         }
-                        return { latitud: currentLatitude.value, longitud: currentLongitude.value, files: [fotoUrl] };
+                        return { latitud: currentLatitude.value, longitud: currentLongitude.value, file: fotoFile };
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        // Enviar la georreferencia al servidor
-                        enviarGeorreferencia(submenuCliente.value.KUNNR, result.value.latitud, result.value.longitud, result.value.files);
+                        // Enviar la georreferencia al servidor con la imagen
+                        enviarGeorreferencia(submenuCliente.value.KUNNR, result.value.latitud, result.value.longitud, result.value.file);
                     }
                 });
             }
@@ -242,7 +284,6 @@ onMounted(() => {
     verificarYcargarClientes();
 });
 </script>
-
 <template>
     <div class="grid grid-cols-12 gap-8">
         <div class="col-span-12">
@@ -287,7 +328,7 @@ onMounted(() => {
                                     <div class="flex flex-col gap-6 mt-6">
                                         <div class="flex gap-2">
                                             <Button icon="pi pi-th-large" label="Más" class="flex-auto whitespace-nowrap" @click="() => mostrarSubmenu(cliente)" />
-                                            <Button icon="pi pi-briefcase" label="Visitar" class="flex-auto md:flex-initial whitespace-nowrap" @click="() => irAEntregas(cliente)" />
+                                            <Button icon="pi pi-briefcase" label="Visitar" class="flex-auto md:flex-initial whitespace-nowrap" @click="irAEntregas(cliente)" />
                                         </div>
                                     </div>
                                 </div>
@@ -318,7 +359,7 @@ onMounted(() => {
                                         <div class="flex flex-col md:items-end gap-8">
                                             <div class="flex flex-row-reverse md:flex-row gap-2">
                                                 <Button icon="pi pi-th-large" label="Más" class="flex-auto md:flex-initial whitespace-nowrap" @click="() => mostrarSubmenu(cliente)" />
-                                                <Button icon="pi pi-briefcase" label="Visitar" class="flex-auto md:flex-initial whitespace-nowrap" @click="() => irAEntregas(cliente)" />
+                                                <Button icon="pi pi-briefcase" label="Visitar" class="flex-auto md:flex-initial whitespace-nowrap" @click="irAEntregas(cliente)" />
                                             </div>
                                         </div>
                                     </div>
