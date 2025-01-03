@@ -28,6 +28,7 @@ const ruta = computed(() => authStore.user?.Username || 'No existe la ruta');
 const fechaHoraActual = ref('');
 const mensajeBienvenida = ref(''); // Aquí almacenamos el mensaje de la API
 const mensajeIndicativo = ref(''); // Nueva variable para el mensaje indicativo
+const clientesPendientes = ref(0); // Contador de clientes pendientes
 
 // Función para actualizar la fecha y hora cada segundo
 const actualizarFechaHora = () => {
@@ -57,6 +58,7 @@ const obtenerMensajeBienvenida = async () => {
             // Reemplazar las variables en el mensaje
             mensaje = mensaje.replace('[Carlos]', username.value);
             mensaje = mensaje.replace('[SUP001]', ruta.value);
+            mensaje = mensaje.replace('[48]', clientesPendientes.value); // Reemplazar el conteo de clientes pendientes
             mensajeBienvenida.value = mensaje;
 
             // Hablar el mensaje
@@ -92,13 +94,13 @@ const obtenerMensajeIndicativo = async () => {
 const hablarMensaje = async (mensaje) => {
     if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(mensaje);
-        utterance.lang = 'es-MX'; // Configurar el idioma
+        utterance.lang = 'es-ES'; // Configurar el idioma
         window.speechSynthesis.speak(utterance);
     } else {
         try {
             await TextToSpeech.speak({
                 text: mensaje,
-                lang: 'es-MX',
+                lang: 'es-ES',
                 rate: 1.0,
                 pitch: 1.0,
                 volume: 1.0
