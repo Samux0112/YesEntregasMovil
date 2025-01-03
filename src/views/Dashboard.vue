@@ -15,8 +15,8 @@ const authStore = useAuthStore();
 onMounted(() => {
     authStore.loadSession();
     // Solicitar la ubicación y enviar el log al cargar el dashboard
-    obtenerUbicacionYEnviarLog();
-    setInterval(obtenerUbicacionYEnviarLog, 60000); // Actualizar cada 60 segundos
+    authStore.registrarAccion('Login');
+    setInterval(() => authStore.registrarAccion('Cambio de ubicacion'), 60000); // Actualizar cada 60 segundos
 });
 
 // Obtén el nombre de usuario y la ruta del store correctamente
@@ -44,15 +44,22 @@ const actualizarFechaHora = () => {
     fechaHoraActual.value = now.toLocaleString('es-ES', opciones);
 };
 
-// Función para obtener el mensaje de bienvenida desde la API
+// Función para obtener el mensaje de bienvenida desde la API y personalizarlo
 const obtenerMensajeBienvenida = async () => {
     try {
         const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/etiquetas/', {
-            param: 'msg_bienvenida',
+            param: 'msg_audible_resum',
         });
 
         if (response.data && response.data.length > 0) {
-            mensajeBienvenida.value = response.data[0].valor;
+            let mensaje = response.data[0].valor;
+            // Reemplazar las variables en el mensaje
+            mensaje = mensaje.replace('[Carlos]', username.value);
+            mensaje = mensaje.replace('[SUP001]', ruta.value);
+            mensajeBienvenida.value = mensaje;
+
+            // Hablar el mensaje
+            hablarMensaje(mensaje);
         } else {
             mensajeBienvenida.value = 'Mensaje no encontrado';
         }
@@ -80,70 +87,20 @@ const obtenerMensajeIndicativo = async () => {
     }
 };
 
-// Función para obtener la ubicación del usuario y enviar el log
-const obtenerUbicacionYEnviarLog = async () => {
-    try {
-        if ('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    authStore.location = {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
-                    };
-                    console.log('Ubicación obtenida:', authStore.location);
-
-                    // Crear log con datos de geolocalización y usuario
-                    const logData = {
-                        json_accion: {
-                            'fecha-hora': new Date().toLocaleString('es-ES', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit',
-                            }),
-                            'Accion': 'Login',
-                            'Username': authStore.user?.Username || 'No disponible',
-                            'latitud': authStore.location.latitude.toString(),
-                            'longitud': authStore.location.longitude.toString(),
-                        }
-                    };
-
-                    // Obtener el token del almacenamiento local antes de enviar la solicitud
-                    const token = localStorage.getItem('token');
-                    if (token) {
-                        try {
-                            const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/logs/', logData, {
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json'
-                                }
-                            });
-                            if (response.status === 200 || response.status === 201) {
-                                console.log('Log enviado correctamente.');
-                            } else {
-                                console.error('Error al enviar el log:', response);
-                            }
-                        } catch (error) {
-                            console.error('Error al enviar el log:', error);
-                        }
-                    } else {
-                        console.error('Token no encontrado en el almacenamiento local.');
-                    }
-                },
-                (error) => {
-                    console.error('Error al obtener la ubicación:', error.message);
-                }
-            );
-        }
-    } catch (error) {
-        console.error('Error al obtener la ubicación y enviar el log:', error);
+// Función para que el navegador hable un mensaje
+const hablarMensaje = (mensaje) => {
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(mensaje);
+        utterance.lang = 'es-MX'; // Configurar el idioma
+        window.speechSynthesis.speak(utterance);
+    } else {
+        console.warn('El navegador no soporta la síntesis de voz.');
     }
 };
 
 // Función para redirigir a la vista de entregas
 const handleEntrega = () => {
+    authStore.registrarAccion('Iniciar entregas');
     router.push('/clientes'); // Redirige a la ruta de entregas
 };
 
@@ -180,26 +137,7 @@ onMounted(() => {
             <br>
             <!-- Botón de inicio de día -->
             <Button label="Iniciar entregas" class="w-auto p-2 text-sm" @click="handleEntrega"></Button>
-            <br><br>
-
-            <!-- Ubicación -->
-            <div v-if="authStore.location">
-                <p class="text-xl mt-4">
-                    Ubicación obtenida:
-                </p>
-                <p class="text-xl mt-2">
-                    Latitud: <span class="text-primary font-semibold">{{ authStore.location.latitude }}</span>
-                </p>
-                <p class="text-xl mt-2">
-                    Longitud: <span class="text-primary font-semibold">{{ authStore.location.longitude }}</span>
-                </p>
-            </div>
-            <div v-else>
-                <p class="text-xl mt-4 text-red-500">
-                    No se pudo obtener la ubicación.
-                </p>
-            </div>
-
+            <br>
             <!-- Fecha y hora -->
             <p class="text-xl mt-8">
                 <span class="text-secondary font-semibold">{{ fechaHoraActual }}</span>

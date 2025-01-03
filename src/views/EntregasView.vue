@@ -291,40 +291,35 @@ onMounted(() => {
                 showGridlines
             >
                 <template #header>
-                    <div class="flex justify-between items-center mb-4">
+                    
                         <div>
-                            <div class="font-semibold text-l">Cliente: {{ cliente.NAME1 }} ({{ cliente.NAME2 }})</div>
+                            <div class="font-semibold text-l">Cliente: {{ cliente.NAME1 }}</div>
+                            <div class="font-semibold text-l">({{ cliente.NAME2 }})</div>
                             <div class="flex">
                                 <div class="font-semibold text-l">{{ cliente.KUNNR }}</div>
-                                <div class="font-semibold text-l ml-4" v-if="arktxList.length > 0"> Documento: {{ arktxList[0].VBELN }}</div>
+                                <div class="font-semibold text-l ml-2" v-if="arktxList.length > 0"> Dui: {{ arktxList[0].VBELN }}</div>
                             </div>
                             <div class="flex">
-                                <div class="font-semibold text-l">Latitud: {{ cliente.LATITUD }}</div>
-                                <div class="font-semibold text-l ml-4">Longitud: {{ cliente.LONGITUD }}</div>
+                                <div class="font-semibold text-l">Items: {{ totalItems }}</div>
+                                <div class="font-semibold text-l ml-2">Total: {{ totalCantidad }}</div>
+                                <div class="font-semibold text-l ml-2"># de JABAS: </div>
+                                <div class="font-semibold text-l ml-2"># de PALETS: </div>
                             </div>
+                            <br>
                             <div class="flex">
-                                <div class="font-semibold text-l"># de JABAS: </div>
-                                <div class="font-semibold text-l ml-4"># de PALETS: </div>
-                            </div>
-                            <div class="flex items-center">
-                                <div class="font-semibold text-l">Entrega: </div>
-                                <Button label="Entregar" icon="pi pi-check" class="ml-4" @click="handleEntregar" />
-                            </div>
-                            <div class="flex">
-                                <div class="font-semibold text-l">Total de Items: {{ totalItems }}</div>
-                                <div class="font-semibold text-l ml-4">Total Cantidad: {{ totalCantidad }}</div>
+                                <Button label="Entregar" icon="pi pi-check" class="" @click="handleEntregar" />
                             </div>
                         </div>
-                    </div>
+                    
                 </template>
                 <template #empty> No se encontraron productos </template>
                 <template #loading> Cargando productos, por favor espere. </template>
-                <Column field="ARKTX" header="Descripción" style="min-width: 12rem" />
-                <Column field="FKIMG" header="Cantidad" style="min-width: 12rem" />
+                <Column field="ARKTX" header="Descripción" style="min-width: 5rem" />
+                <Column field="FKIMG" header="Cantidad" style="min-width: 5rem" />
                 <Column 
                     field="entregado" 
                     header="Confirmar" 
-                    style="min-width: 12rem"
+                    style="min-width: 5rem"
                 >
                     <template #header>
                         <div class="flex justify-between items-center">

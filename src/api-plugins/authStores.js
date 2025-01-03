@@ -10,6 +10,7 @@ export const useAuthStore = defineStore('auth', {
         token: null,
         error: null,
         location: null,
+        actions: [] // Para almacenar las acciones del usuario
     }),
 
     actions: {
@@ -125,7 +126,7 @@ export const useAuthStore = defineStore('auth', {
                 });
             }
         },
-// inserta el json en la base de datos 
+
         insertLogWithJson(logData) {
             const logs = JSON.parse(localStorage.getItem('logs')) || [];
             logs.push(logData);
@@ -194,6 +195,63 @@ export const useAuthStore = defineStore('auth', {
 
         hasGroup(groupName) {
             return this.groups.includes(groupName);
+        },
+
+        async obtenerUbicacionYEnviarLog(accion) {
+            if ('geolocation' in navigator) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    this.location = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    };
+                    console.log('Ubicación obtenida:', this.location);
+
+                    const logData = {
+                        json_accion: {
+                            'fecha-hora': new Date().toLocaleString('es-ES', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                            }),
+                            'Accion': accion,
+                            'Username': this.user?.Username || 'No disponible',
+                            'latitud': this.location.latitude.toString(),
+                            'longitud': this.location.longitude.toString(),
+                        }
+                    };
+
+                    const token = localStorage.getItem('token');
+                    if (token) {
+                        try {
+                            const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/logs/', logData, {
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            if (response.status === 200 || response.status === 201) {
+                                console.log('Log enviado correctamente.');
+                                this.actions.push(logData.json_accion); // Registrar la acción
+                            } else {
+                                console.error('Error al enviar el log:', response);
+                            }
+                        } catch (error) {
+                            console.error('Error al enviar el log:', error);
+                        }
+                    } else {
+                        console.error('Token no encontrado en el almacenamiento local.');
+                    }
+                }, (error) => {
+                    console.error('Error al obtener la ubicación:', error.message);
+                });
+            }
+        },
+
+        async registrarAccion(accion) {
+            await this.obtenerUbicacionYEnviarLog(accion);
         }
     }
 });
