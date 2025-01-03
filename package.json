@@ -8,6 +8,7 @@
         "lint": "eslint --fix . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
     },
     "dependencies": {
+        "@capacitor-community/speech-recognition": "^6.0.1",
         "@capacitor/android": "6.2.0",
         "@capacitor/app": "6.0.2",
         "@capacitor/camera": "^6.1.2",
