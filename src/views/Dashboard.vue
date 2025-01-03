@@ -54,9 +54,6 @@ const obtenerMensajeBienvenida = async () => {
             mensaje = mensaje.replace('[48]', clientesPendientes.value);
             mensaje = mensaje.replace('[1800]', totalKgsGlobal.value);
             mensajeBienvenida.value = mensaje;
-
-            // Hablar el mensaje
-            hablarMensaje(mensaje);
         } else {
             mensajeBienvenida.value = 'Mensaje no encontrado';
         }
@@ -75,8 +72,6 @@ const obtenerMensajeIndicativo = async () => {
 
         if (response.data && response.data.length > 0) {
             mensajeIndicativo.value = response.data[0].valor;
-            // Hablar el mensaje indicativo
-            hablarMensaje(mensajeIndicativo.value);
         } else {
             mensajeIndicativo.value = 'Mensaje no encontrado';
         }
@@ -181,6 +176,10 @@ onMounted(async () => {
     // Obtener el mensaje de bienvenida e indicativo al montar el componente
     await obtenerMensajeBienvenida();
     await obtenerMensajeIndicativo();
+
+    // Concatenar y hablar ambos mensajes
+    const mensajeCompleto = `${mensajeBienvenida.value}. ${mensajeIndicativo.value}`;
+    hablarMensaje(mensajeCompleto);
 });
 </script>
 
@@ -191,6 +190,14 @@ onMounted(async () => {
             <h1 class="text-3xl font-bold">
                 {{ mensajeBienvenida || 'Cargando mensaje...' }}
             </h1>
+            <br>
+            <p class="text-xl mt-4">
+                Usuario: <span class="text-primary font-semibold">{{ username }}</span>
+            </p>
+            <p class="text-xl mt-4">
+                Ruta: <span class="text-primary font-semibold">{{ ruta }}</span>
+            </p>
+            <br>
             <!-- Mensaje indicativo -->
             <p class="text-xl mt-4">
                 {{ mensajeIndicativo || 'Cargando mensaje indicativo...' }}
