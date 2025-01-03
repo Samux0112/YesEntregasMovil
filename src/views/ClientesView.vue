@@ -15,6 +15,7 @@ const authStore = useAuthStore();
 const username = computed(() => authStore.user?.Username || 'Invitado');
 const clientes = ref([]);
 const estadoFiltro = ref('Pendiente'); // Estado del filtro, inicializado en 'Pendiente'
+const clientesPendientes = ref(0); // Contador de clientes pendientes
 
 // Estado para el submenú
 const showSubmenu = ref(false);
@@ -33,8 +34,7 @@ const currentLongitude = ref(null);
 // Variable para almacenar la URL de la imagen
 const imageUrl = ref(null);
 
-const clientesPendientes = ref(0);
-
+// Cargar clientes desde la API
 const cargarClientes = async () => {
     try {
         const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/clientes/', {
@@ -49,10 +49,8 @@ const cargarClientes = async () => {
             localStorage.setItem('clientes', JSON.stringify(clientesConEstado));
             localStorage.setItem('ultimaCargaClientes', new Date().toISOString()); // Guardar la fecha de la última carga
             clientes.value = clientesConEstado;
-            
             // Contar clientes pendientes
             clientesPendientes.value = clientesConEstado.filter(cliente => cliente.estado === 'pendiente').length;
-            
             // Filtrar clientes pendientes inicialmente
             clientesFiltrados.value = clientesConEstado.filter(cliente => cliente.estado === 'pendiente');
 
@@ -81,6 +79,18 @@ const cargarClientes = async () => {
     }
 };
 
+// Mostrar clientes guardados en localStorage
+const mostrarClientesGuardados = () => {
+    const clientesGuardados = localStorage.getItem('clientes');
+    if (clientesGuardados) {
+        clientes.value = JSON.parse(clientesGuardados);
+        // Contar clientes pendientes
+        clientesPendientes.value = clientes.value.filter(cliente => cliente.estado === 'pendiente').length;
+        // Filtrar clientes pendientes inicialmente
+        clientesFiltrados.value = clientes.value.filter(cliente => cliente.estado === 'pendiente');
+    }
+};
+
 // Verificar y cargar clientes si no se han cargado hoy
 const verificarYcargarClientes = async () => {
     const ultimaCargaClientes = localStorage.getItem('ultimaCargaClientes');
@@ -90,18 +100,6 @@ const verificarYcargarClientes = async () => {
         await cargarClientes(); // Cargar clientes si no se han cargado hoy
     } else {
         mostrarClientesGuardados(); // Mostrar clientes guardados si ya se han cargado hoy
-        // Contar clientes pendientes actualizados
-        clientesPendientes.value = clientes.value.filter(cliente => cliente.estado === 'pendiente').length;
-    }
-};
-
-// Mostrar clientes guardados en localStorage
-const mostrarClientesGuardados = () => {
-    const clientesGuardados = localStorage.getItem('clientes');
-    if (clientesGuardados) {
-        clientes.value = JSON.parse(clientesGuardados);
-        // Filtrar clientes pendientes inicialmente
-        clientesFiltrados.value = clientes.value.filter(cliente => cliente.estado === 'pendiente');
     }
 };
 

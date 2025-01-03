@@ -1,9 +1,9 @@
 <script setup>
 import { useAuthStore } from '@/api-plugins/authStores';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import Swal from 'sweetalert2';
 
 // Variables y referencias
 const route = useRoute();
@@ -33,6 +33,35 @@ const totalItems = computed(() => arktxList.value.length);
 const totalCantidad = computed(() => {
     return arktxList.value.reduce((acc, item) => acc + item.FKIMG, 0);
 });
+
+// Variables para jabas, palets y KGS
+const numeroJabas = ref(0);
+const numeroPalets = ref(0);
+const totalKgs = ref(0);
+
+// Función para obtener el número de jabas y palets desde la API
+const obtenerJabasYPallets = async (vbeln) => {
+    try {
+        const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/control-cestas/', {
+            vbeln: vbeln,
+            start_date: null,
+            end_date: null
+        });
+
+        if (response.data && response.data.length > 0) {
+            const salidas = response.data.filter(item => item.tipo_mov === 'S');
+            numeroJabas.value = salidas.reduce((acc, item) => acc + item.cantidad, 0);
+            numeroPalets.value = salidas.reduce((acc, item) => acc + item.cantidad_palets, 0);
+        } else {
+            numeroJabas.value = 0;
+            numeroPalets.value = 0;
+        }
+    } catch (error) {
+        console.error('Error al obtener el número de jabas y palets:', error);
+        numeroJabas.value = 0;
+        numeroPalets.value = 0;
+    }
+};
 
 // Funciones
 const handleEntregar = () => {
@@ -217,11 +246,18 @@ const cargarProductosDesdeAPI = async () => {
                     FKIMG: parseFloat(entrega.FKIMG),
                     VBELN: entrega.VBELN,
                     POSNR: entrega.POSNR,
+                    KGS: entrega.KGS,
                     entregado: entrega.FKIMG, // Inicializar con la misma cantidad
-                    editable: true // Inicialmente editable
+                    editable: false // Inicialmente no editable
                 }));
                 localStorage.setItem(`productos_${cliente.value.KUNNR}`, JSON.stringify(arktxList.value));
                 console.log('Productos guardados en localStorage:', arktxList.value);
+
+                // Llamar a obtenerJabasYPallets con el VBELN de la primera entrega
+                obtenerJabasYPallets(entregasCliente[0].VBELN);
+
+                // Sumar los KGS de todas las entregas del cliente y limitar a 2 decimales
+                totalKgs.value = arktxList.value.reduce((acc, item) => acc + item.KGS, 0).toFixed(2);
             } else {
                 console.log('No se encontró coincidencia entre KUNNR y KUNNAG');
             }
@@ -291,26 +327,28 @@ onMounted(() => {
                 showGridlines
             >
                 <template #header>
-                    
-                        <div>
-                            <div class="font-semibold text-l">Cliente: {{ cliente.NAME1 }}</div>
-                            <div class="font-semibold text-l">({{ cliente.NAME2 }})</div>
-                            <div class="flex">
-                                <div class="font-semibold text-l">{{ cliente.KUNNR }}</div>
-                                <div class="font-semibold text-l ml-2" v-if="arktxList.length > 0"> Dui: {{ arktxList[0].VBELN }}</div>
-                            </div>
-                            <div class="flex">
-                                <div class="font-semibold text-l">Items: {{ totalItems }}</div>
-                                <div class="font-semibold text-l ml-2">Total: {{ totalCantidad }}</div>
-                                <div class="font-semibold text-l ml-2"># de JABAS: </div>
-                                <div class="font-semibold text-l ml-2"># de PALETS: </div>
-                            </div>
-                            <br>
-                            <div class="flex">
-                                <Button label="Entregar" icon="pi pi-check" class="" @click="handleEntregar" />
-                            </div>
+                    <div>
+                        <div class="font-semibold text-l">Cliente: {{ cliente.NAME1 }}</div>
+                        <div class="font-semibold text-l">({{ cliente.NAME2 }})</div>
+                        <div class="flex">
+                            <div class="font-semibold text-l">{{ cliente.KUNNR }}</div>
+                            <div class="font-semibold text-l ml-2" v-if="arktxList.length > 0"> Dui: {{ arktxList[0].VBELN }}</div>
                         </div>
-                    
+                        <div class="flex">
+                            <div class="font-semibold text-l">Items: {{ totalItems }}</div>
+                            <div class="font-semibold text-l ml-2">Total: {{ totalCantidad }}</div>
+                        </div>
+                        <div class="flex">
+                            <div class="font-semibold text-l"># de JABAS: {{ numeroJabas }}</div>
+                            <div class="font-semibold text-l ml-2"># de PALETS: {{ numeroPalets }}</div>
+                        </div>
+                        <div class="flex"> 
+                            <div class="font-semibold text-l">Total KG: {{ totalKgs }}</div>
+                        </div>
+                        <div class="flex">
+                            <Button label="Entregar" icon="pi pi-check" class="" @click="handleEntregar" />
+                        </div>
+                    </div>
                 </template>
                 <template #empty> No se encontraron productos </template>
                 <template #loading> Cargando productos, por favor espere. </template>

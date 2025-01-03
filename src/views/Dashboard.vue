@@ -1,9 +1,9 @@
 <script setup>
 import { useAuthStore } from '@/api-plugins/authStores';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import Swal from 'sweetalert2';
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 // Accede al router
@@ -11,14 +11,6 @@ const router = useRouter();
 
 // Accede al store de autenticación
 const authStore = useAuthStore();
-
-// Carga la sesión al iniciar el componente
-onMounted(() => {
-    authStore.loadSession();
-    // Solicitar la ubicación y enviar el log al cargar el dashboard
-    authStore.registrarAccion('Login');
-    setInterval(() => authStore.registrarAccion('Cambio de ubicacion'), 60000); // Actualizar cada 60 segundos
-});
 
 // Obtén el nombre de usuario y la ruta del store correctamente
 const username = computed(() => authStore.user?.Nombre || 'Invitado');
@@ -29,6 +21,7 @@ const fechaHoraActual = ref('');
 const mensajeBienvenida = ref(''); // Aquí almacenamos el mensaje de la API
 const mensajeIndicativo = ref(''); // Nueva variable para el mensaje indicativo
 const clientesPendientes = ref(0); // Contador de clientes pendientes
+const totalKgsGlobal = ref(0); // Peso total de todas las entregas
 
 // Función para actualizar la fecha y hora cada segundo
 const actualizarFechaHora = () => {
@@ -58,7 +51,8 @@ const obtenerMensajeBienvenida = async () => {
             // Reemplazar las variables en el mensaje
             mensaje = mensaje.replace('[Carlos]', username.value);
             mensaje = mensaje.replace('[SUP001]', ruta.value);
-            mensaje = mensaje.replace('[48]', clientesPendientes.value); // Reemplazar el conteo de clientes pendientes
+            mensaje = mensaje.replace('[48]', clientesPendientes.value);
+            mensaje = mensaje.replace('[1800]', totalKgsGlobal.value);
             mensajeBienvenida.value = mensaje;
 
             // Hablar el mensaje
@@ -81,6 +75,8 @@ const obtenerMensajeIndicativo = async () => {
 
         if (response.data && response.data.length > 0) {
             mensajeIndicativo.value = response.data[0].valor;
+            // Hablar el mensaje indicativo
+            hablarMensaje(mensajeIndicativo.value);
         } else {
             mensajeIndicativo.value = 'Mensaje no encontrado';
         }
@@ -111,6 +107,60 @@ const hablarMensaje = async (mensaje) => {
     }
 };
 
+// Función para cargar clientes y contar los pendientes
+const cargarClientesPendientes = async () => {
+    try {
+        const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/clientes/', {
+            sortl: username.value,
+        });
+
+        if (response.data && response.data.length > 0) {
+            const clientesConEstado = response.data.map(cliente => ({
+                ...cliente,
+                estado: cliente.estado || 'pendiente' // Asignar estado inicial como pendiente si no existe
+            }));
+            localStorage.setItem('clientes', JSON.stringify(clientesConEstado));
+            localStorage.setItem('ultimaCargaClientes', new Date().toISOString()); // Guardar la fecha de la última carga
+            clientesPendientes.value = clientesConEstado.filter(cliente => cliente.estado === 'pendiente').length;
+        } else {
+            clientesPendientes.value = 0;
+            Swal.fire({
+                title: 'Sin clientes',
+                text: 'No se encontraron clientes para el usuario proporcionado.',
+                icon: 'info',
+                confirmButtonText: 'Entendido',
+            });
+        }
+    } catch (error) {
+        console.error('Error al cargar los clientes:', error);
+        clientesPendientes.value = 0;
+        Swal.fire({
+            title: 'Error',
+            text: 'Hubo un problema al cargar los clientes.',
+            icon: 'error',
+            confirmButtonText: 'Entendido',
+        });
+    }
+};
+
+// Función para obtener el peso total de todas las entregas
+const obtenerTotalKgsGlobal = async () => {
+    try {
+        const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/entregas/', {
+            bzirk: username.value
+        });
+
+        if (response.data && response.data.length > 0) {
+            totalKgsGlobal.value = response.data.reduce((acc, item) => acc + item.KGS, 0).toFixed(2);
+        } else {
+            totalKgsGlobal.value = 0;
+        }
+    } catch (error) {
+        console.error('Error al obtener el peso total de todas las entregas:', error);
+        totalKgsGlobal.value = 0;
+    }
+};
+
 // Función para redirigir a la vista de entregas
 const handleEntrega = () => {
     authStore.registrarAccion('Iniciar entregas');
@@ -118,13 +168,19 @@ const handleEntrega = () => {
 };
 
 // Actualizar la fecha y hora cada segundo
-onMounted(() => {
+onMounted(async () => {
     actualizarFechaHora();
     setInterval(actualizarFechaHora, 1000);
 
+    // Cargar clientes pendientes
+    await cargarClientesPendientes();
+
+    // Obtener el peso total de todas las entregas
+    await obtenerTotalKgsGlobal();
+
     // Obtener el mensaje de bienvenida e indicativo al montar el componente
-    obtenerMensajeBienvenida();
-    obtenerMensajeIndicativo();
+    await obtenerMensajeBienvenida();
+    await obtenerMensajeIndicativo();
 });
 </script>
 
@@ -135,14 +191,6 @@ onMounted(() => {
             <h1 class="text-3xl font-bold">
                 {{ mensajeBienvenida || 'Cargando mensaje...' }}
             </h1>
-            <br>
-            <p class="text-xl mt-4">
-                Usuario: <span class="text-primary font-semibold">{{ username }}</span>
-            </p>
-            <p class="text-xl mt-4">
-                Ruta: <span class="text-primary font-semibold">{{ ruta }}</span>
-            </p>
-            <br>
             <!-- Mensaje indicativo -->
             <p class="text-xl mt-4">
                 {{ mensajeIndicativo || 'Cargando mensaje indicativo...' }}
