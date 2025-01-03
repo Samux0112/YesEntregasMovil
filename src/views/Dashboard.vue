@@ -4,9 +4,7 @@ import axios from 'axios';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
-import { Plugins } from '@capacitor/core';
-
-const { SpeechRecognition } = Plugins;
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 // Accede al router
 const router = useRouter();
@@ -96,14 +94,18 @@ const hablarMensaje = async (mensaje) => {
         const utterance = new SpeechSynthesisUtterance(mensaje);
         utterance.lang = 'es-MX'; // Configurar el idioma
         window.speechSynthesis.speak(utterance);
-    } else if (Capacitor.isNativePlatform()) {
+    } else {
         try {
-            await SpeechRecognition.speak({ value: mensaje });
+            await TextToSpeech.speak({
+                text: mensaje,
+                lang: 'es-MX',
+                rate: 1.0,
+                pitch: 1.0,
+                volume: 1.0
+            });
         } catch (error) {
             console.warn('Error al utilizar la síntesis de voz en la plataforma nativa:', error);
         }
-    } else {
-        console.warn('El navegador no soporta la síntesis de voz.');
     }
 };
 
