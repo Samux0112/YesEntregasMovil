@@ -6,6 +6,9 @@
   "plugins": {
     "Geolocation": {
       "backgroundPermission": "true"
+    },
+    "SpeechRecognition": {
+      "language": "es-MX"
     }
   }
 
