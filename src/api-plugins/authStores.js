@@ -98,12 +98,6 @@ export const useAuthStore = defineStore('auth', {
                             },
                             (error) => {
                                 console.error('Error al obtener la ubicación:', error.message);
-                                Swal.fire({
-                                    title: 'Acceso a la ubicación',
-                                    text: 'Se requiere acceso a la ubicación para esta aplicación.',
-                                    icon: 'warning',
-                                    confirmButtonText: 'Entendido'
-                                });
                             },
                             {
                                 enableHighAccuracy: true,
@@ -112,7 +106,6 @@ export const useAuthStore = defineStore('auth', {
                             }
                         );
                     };
-
                     updateLocation();
                     setInterval(updateLocation, 60000); // Actualizar cada 60 segundos
                 }
@@ -125,6 +118,44 @@ export const useAuthStore = defineStore('auth', {
                     confirmButtonText: 'Intentar de nuevo'
                 });
             }
+        },
+
+        async obtenerYGuardarUbicacion() {
+            return new Promise((resolve) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const lat = position.coords.latitude;
+                            const lon = position.coords.longitude;
+                            localStorage.setItem('userLatitude', lat);
+                            localStorage.setItem('userLongitude', lon);
+                            console.log(`Ubicación obtenida y guardada: Latitud ${lat}, Longitud ${lon}`);
+                            resolve({ lat, lon });
+                        },
+                        (error) => {
+                            console.error('Error obteniendo la geolocalización:', error);
+                            Swal.fire({
+                                title: 'Error',
+                                text: 'No se pudo obtener la ubicación. Asegúrate de que los permisos están habilitados.',
+                                icon: 'error',
+                                confirmButtonText: 'Entendido'
+                            });
+                            // Resolver con valores predeterminados si hay un error
+                            resolve({ lat: 0, lon: 0 });
+                        }
+                    );
+                } else {
+                    console.error('Geolocalización no soportada por el navegador');
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Geolocalización no soportada por el navegador',
+                        icon: 'error',
+                        confirmButtonText: 'Entendido'
+                    });
+                    // Resolver con valores predeterminados si la geolocalización no es soportada
+                    resolve({ lat: 0, lon: 0 });
+                }
+            });
         },
 
         insertLogWithJson(logData) {

@@ -167,6 +167,9 @@ onMounted(async () => {
     actualizarFechaHora();
     setInterval(actualizarFechaHora, 1000);
 
+    // Solicitar permisos de geolocalización
+    await authStore.requestLocationPermissions();
+
     // Cargar clientes pendientes
     await cargarClientesPendientes();
 

@@ -27,10 +27,6 @@ const submenuOptions = [
     { label: 'Llamada Telefónica', value: 'llamada' }
 ];
 
-// Variables para geolocalización
-const currentLatitude = ref(null);
-const currentLongitude = ref(null);
-
 // Variable para almacenar la URL de la imagen
 const imageUrl = ref(null);
 
@@ -129,56 +125,6 @@ const calcularDistancia = (lat1, lon1, lat2, lon2) => {
     return distancia;
 };
 
-// Obtener la geolocalización actual del usuario y almacenarla
-const obtenerYGuardarGeolocalizacion = () => {
-    return new Promise((resolve) => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    localStorage.setItem('userLatitude', lat);
-                    localStorage.setItem('userLongitude', lon);
-                    console.log(`Ubicación obtenida y guardada: Latitud ${lat}, Longitud ${lon}`);
-                    resolve({ lat, lon });
-                },
-                (error) => {
-                    console.error('Error obteniendo la geolocalización:', error);
-                    // Resolver con valores predeterminados si hay un error
-                    resolve({ lat, lon });
-                }
-            );
-        } else {
-            console.error('Geolocalización no soportada por el navegador');
-            // Resolver con valores predeterminados si la geolocalización no es soportada
-            resolve({ lat, lon });
-        }
-    });
-};
-
-// Obtener la geolocalización actual del usuario sin almacenar
-const obtenerGeolocalizacion = () => {
-    return new Promise((resolve, reject) => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    console.log(`Ubicación obtenida: Latitud ${lat}, Longitud ${lon}`);
-                    resolve({ lat, lon });
-                },
-                (error) => {
-                    console.error('Error obteniendo la geolocalización:', error);
-                    reject(error);
-                }
-            );
-        } else {
-            console.error('Geolocalización no soportada por el navegador');
-            reject(new Error('Geolocalización no soportada por el navegador'));
-        }
-    });
-};
-
 //Me lleva a entregas
 const irAEntregas = (cliente) => {
     if (!cliente.LATITUD || !cliente.LONGITUD) {
@@ -194,16 +140,6 @@ const irAEntregas = (cliente) => {
     // Obtener la ubicación del usuario desde el localStorage
     const userLat = parseFloat(localStorage.getItem('userLatitude'));
     const userLon = parseFloat(localStorage.getItem('userLongitude'));
-
-    if (isNaN(userLat) || isNaN(userLon)) {
-        Swal.fire({
-            title: 'Error',
-            text: 'No se pudo obtener la ubicación actual del usuario.',
-            icon: 'error',
-            confirmButtonText: 'Entendido'
-        });
-        return;
-    }
 
     // Calcular la distancia entre el usuario y el cliente
     const clienteLat = parseFloat(cliente.LATITUD);
@@ -234,7 +170,7 @@ const mostrarSubmenu = async (cliente) => {
     if (cliente) {
         submenuCliente.value = cliente;
         showSubmenu.value = true;
-        await obtenerYGuardarGeolocalizacion();
+        await authStore.requestLocationPermissions();
     } else {
         console.error('Cliente es null');
     }
@@ -350,9 +286,9 @@ const handleSubmenuClick = async (option) => {
     showSubmenu.value = false;
 };
 
-onMounted(() => {
+onMounted(async () => {
     verificarYcargarClientes();
-    obtenerYGuardarGeolocalizacion(); // Obtener y guardar la ubicación del usuario al montar el componente
+    requestLocationPermissions();
 });
 </script>
 <template>
@@ -367,7 +303,6 @@ onMounted(() => {
             <div class="mt-4">
                 <Dropdown v-model="estadoFiltro" :options="[ 'Pendiente','Atendido','Todos']" placeholder="Filtrar por estado" class="w-full p-2 border rounded mb-4"/>
             </div>
-
             <!-- Mostrar clientes en DataView -->
             <div v-if="clientesFiltrados.length > 0" class="mt-4">
                 <DataView :value="clientesFiltrados" :layout="layout">

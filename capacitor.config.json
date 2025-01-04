@@ -4,9 +4,11 @@
   "webDir": "dist",
   "bundledWebRuntime": false,
   "plugins": {
-    "Geolocation": {
-      "backgroundPermission": "true"
-    }
+        "Geolocation": {
+            "permissions": [
+                "location"
+            ]
+        }
   }
 
 }
