@@ -1,10 +1,10 @@
 <script setup>
 import { useAuthStore } from '@/api-plugins/authStores';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 const router = useRouter();
 const options = ref(['list', 'grid']);
@@ -29,6 +29,12 @@ const submenuOptions = [
 
 // Variable para almacenar la URL de la imagen
 const imageUrl = ref(null);
+
+// Recuperar la geolocalización desde localStorage
+const userLocation = computed(() => {
+    const location = localStorage.getItem('location');
+    return location ? JSON.parse(location) : { latitude: 0, longitude: 0 };
+});
 
 // Cargar clientes desde la API
 const cargarClientes = async () => {
@@ -117,8 +123,8 @@ const calcularDistancia = (lat1, lon1, lat2, lon2) => {
     const Δλ = (lon2 - lon1) * Math.PI / 180;
 
     const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+        Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     const distancia = R * c; // En metros
@@ -138,8 +144,8 @@ const irAEntregas = (cliente) => {
     }
 
     // Obtener la ubicación del usuario desde el localStorage
-    const userLat = parseFloat(localStorage.getItem('userLatitude'));
-    const userLon = parseFloat(localStorage.getItem('userLongitude'));
+    const userLat = userLocation.value.latitude;
+    const userLon = userLocation.value.longitude;
 
     // Calcular la distancia entre el usuario y el cliente
     const clienteLat = parseFloat(cliente.LATITUD);
@@ -233,8 +239,8 @@ const handleSubmenuClick = async (option) => {
         case 'georreferencia':
             const fotoFile = await tomarFoto(submenuCliente.value.KUNNR);
             if (fotoFile) {
-                const userLat = parseFloat(localStorage.getItem('userLatitude'));
-                const userLon = parseFloat(localStorage.getItem('userLongitude'));
+                const userLat = userLocation.value.latitude;
+                const userLon = userLocation.value.longitude;
                 Swal.fire({
                     title: 'Tomar Georreferencia',
                     html: `
@@ -260,8 +266,8 @@ const handleSubmenuClick = async (option) => {
             }
             break;
         case 'ruta':
-            const urlWaze = `https://www.waze.com/ul?ll=${currentLatitude.value},${currentLongitude.value}&navigate=yes`;
-            const urlMaps = `https://www.google.com/maps/dir/?api=1&origin=${currentLatitude.value},${currentLongitude.value}&destination=${submenuCliente.value.LATITUD},${submenuCliente.value.LONGITUD}`;
+            const urlWaze = `https://www.waze.com/ul?ll=${userLocation.value.latitude},${userLocation.value.longitude}&navigate=yes`;
+            const urlMaps = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.value.latitude},${userLocation.value.longitude}&destination=${submenuCliente.value.LATITUD},${submenuCliente.value.LONGITUD}`;
             Swal.fire({
                 title: 'Graficar Ruta',
                 html: `
@@ -287,8 +293,7 @@ const handleSubmenuClick = async (option) => {
 };
 
 onMounted(async () => {
-    verificarYcargarClientes();
-    requestLocationPermissions();
+    verificarYcargarClientes()
 });
 </script>
 <template>
@@ -296,12 +301,14 @@ onMounted(async () => {
         <div class="col-span-12">
             <div class="mt-4">
                 <!-- Campo de búsqueda -->
-                <input v-model="searchTerm" type="text" placeholder="Buscar cliente por nombre..." class="w-full p-2 border rounded mb-4" />
+                <input v-model="searchTerm" type="text" placeholder="Buscar cliente por nombre..."
+                    class="w-full p-2 border rounded mb-4" />
             </div>
 
             <!-- Filtro por estado -->
             <div class="mt-4">
-                <Dropdown v-model="estadoFiltro" :options="[ 'Pendiente','Atendido','Todos']" placeholder="Filtrar por estado" class="w-full p-2 border rounded mb-4"/>
+                <Dropdown v-model="estadoFiltro" :options="['Pendiente', 'Atendido', 'Todos']"
+                    placeholder="Filtrar por estado" class="w-full p-2 border rounded mb-4" />
             </div>
             <!-- Mostrar clientes en DataView -->
             <div v-if="clientesFiltrados.length > 0" class="mt-4">
@@ -319,22 +326,31 @@ onMounted(async () => {
                     <!-- Diseño en formato grid -->
                     <template #grid="slotProps">
                         <div class="grid grid-cols-12 gap-4">
-                            <div v-for="(cliente) in slotProps.items" :key="cliente.KUNNR" 
+                            <div v-for="(cliente) in slotProps.items" :key="cliente.KUNNR"
                                 class="col-span-12 sm:col-span-6 lg:col-span-4 p-2">
-                                <div class="p-6 border border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-900 rounded flex flex-col" :style="{ backgroundColor: cliente.estado === 'atendido' ? '#d4edda' : '#f8d7da' }">
+                                <div class="p-6 border border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-900 rounded flex flex-col"
+                                    :style="{ backgroundColor: cliente.estado === 'atendido' ? '#d4edda' : '#f8d7da' }">
                                     <div class="flex flex-row justify-between items-start gap-2">
                                         <div>
                                             <span class="text-lg font-semibold">{{ cliente.NAME1 }}</span>
                                             <div class="text-lg font-medium mt-1">{{ cliente.NAME2 }}</div>
-                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">Dirección: {{ cliente.STRAS }}</span>
-                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{ cliente.LATITUD }}</span>
-                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{ cliente.LONGITUD }}</span>
+                                            <span
+                                                class="font-medium text-surface-500 dark:text-surface-400 text-sm">Dirección:
+                                                {{ cliente.STRAS }}</span>
+                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
+                                                cliente.LATITUD }}</span>
+                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
+                                                cliente.LONGITUD }}</span>
                                         </div>
                                     </div>
                                     <div class="flex flex-col gap-6 mt-6">
                                         <div class="flex gap-2">
-                                            <Button icon="pi pi-th-large" label="Más" class="flex-auto whitespace-nowrap" @click="() => mostrarSubmenu(cliente)" />
-                                            <Button icon="pi pi-briefcase" label="Visitar" class="flex-auto md:flex-initial whitespace-nowrap" @click="irAEntregas(cliente)" />
+                                            <Button icon="pi pi-th-large" label="Más"
+                                                class="flex-auto whitespace-nowrap"
+                                                @click="() => mostrarSubmenu(cliente)" />
+                                            <Button icon="pi pi-briefcase" label="Visitar"
+                                                class="flex-auto md:flex-initial whitespace-nowrap"
+                                                @click="irAEntregas(cliente)" />
                                         </div>
                                     </div>
                                 </div>
@@ -351,21 +367,33 @@ onMounted(async () => {
                                         <div class="flex flex-row md:flex-col justify-between items-start gap-2">
                                             <div>
                                                 <div class="text-lg font-medium mt-2">{{ cliente.NAME1 }}</div>
-                                                <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{ cliente.NAME2 }}</span>
+                                                <span
+                                                    class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
+                                                        cliente.NAME2 }}</span>
                                             </div>
                                             <div class="bg-surface-100 p-1" style="border-radius: 30px">
-                                                <div class="bg-surface-0 flex items-center gap-2 justify-center py-1 px-2" style="border-radius: 30px;">
-                                                    <span class="text-surface-900 font-medium text-sm">Dirección: {{ cliente.STRAS }}</span>
+                                                <div class="bg-surface-0 flex items-center gap-2 justify-center py-1 px-2"
+                                                    style="border-radius: 30px;">
+                                                    <span class="text-surface-900 font-medium text-sm">Dirección: {{
+                                                        cliente.STRAS }}</span>
                                                     <i class="pi pi-map text-500"></i>
-                                                    <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{ cliente.LATITUD }}</span>
-                                                    <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{ cliente.LONGITUD }}</span>
+                                                    <span
+                                                        class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
+                                                            cliente.LATITUD }}</span>
+                                                    <span
+                                                        class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
+                                                            cliente.LONGITUD }}</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="flex flex-col md:items-end gap-8">
                                             <div class="flex flex-row-reverse md:flex-row gap-2">
-                                                <Button icon="pi pi-th-large" label="Más" class="flex-auto md:flex-initial whitespace-nowrap" @click="() => mostrarSubmenu(cliente)" />
-                                                <Button icon="pi pi-briefcase" label="Visitar" class="flex-auto md:flex-initial whitespace-nowrap" @click="irAEntregas(cliente)" />
+                                                <Button icon="pi pi-th-large" label="Más"
+                                                    class="flex-auto md:flex-initial whitespace-nowrap"
+                                                    @click="() => mostrarSubmenu(cliente)" />
+                                                <Button icon="pi pi-briefcase" label="Visitar"
+                                                    class="flex-auto md:flex-initial whitespace-nowrap"
+                                                    @click="irAEntregas(cliente)" />
                                             </div>
                                         </div>
                                     </div>
@@ -383,10 +411,13 @@ onMounted(async () => {
         <!-- Submenú Modal -->
         <Dialog header="Opciones" v-model:visible="showSubmenu" :modal="true" :closable="true">
             <div class="flex flex-col gap-4">
-                <Button icon="pi pi-compass" label="Tomar Georreferencia" @click="handleSubmenuClick({ value: 'georreferencia' })" />
+                <Button icon="pi pi-compass" label="Tomar Georreferencia"
+                    @click="handleSubmenuClick({ value: 'georreferencia' })" />
                 <Button icon="pi pi-map" label="Graficar Ruta" @click="handleSubmenuClick({ value: 'ruta' })" />
-                <Button icon="pi pi-question-circle" label="Formulario de Encuestas" @click="handleSubmenuClick({ value: 'encuesta' })" />
-                <Button icon="pi pi-phone" label="Llamada Telefónica" @click="handleSubmenuClick({ value: 'llamada' })" />
+                <Button icon="pi pi-question-circle" label="Formulario de Encuestas"
+                    @click="handleSubmenuClick({ value: 'encuesta' })" />
+                <Button icon="pi pi-phone" label="Llamada Telefónica"
+                    @click="handleSubmenuClick({ value: 'llamada' })" />
             </div>
         </Dialog>
     </div>

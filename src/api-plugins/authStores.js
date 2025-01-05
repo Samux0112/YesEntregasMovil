@@ -65,6 +65,13 @@ export const useAuthStore = defineStore('auth', {
 
                 // Redirigir al dashboard
                 router.push({ name: 'dashboard' });
+
+                // Registrar acción de inicio de sesión
+                await this.registrarAccion('Inicio de sesión');
+
+                // Solicitar permisos de geolocalización después del inicio de sesión
+                this.requestLocationPermissions();
+
             } catch (err) {
                 console.error('Error al autenticar:', err);
                 this.error = err.message || 'Usuario o contraseña incorrectos.';
@@ -89,12 +96,22 @@ export const useAuthStore = defineStore('auth', {
                     const updateLocation = async () => {
                         navigator.geolocation.getCurrentPosition(
                             async (position) => {
-                                this.location = {
+                                const newLocation = {
                                     latitude: position.coords.latitude,
                                     longitude: position.coords.longitude
                                 };
-                                localStorage.setItem('location', JSON.stringify(this.location));
-                                console.log('Ubicación actualizada:', this.location);
+
+                                // Si la ubicación ha cambiado, enviar un log
+                                if (!this.location || 
+                                    this.location.latitude !== newLocation.latitude || 
+                                    this.location.longitude !== newLocation.longitude) {
+                                    this.location = newLocation;
+                                    localStorage.setItem('location', JSON.stringify(this.location));
+                                    console.log('Ubicación actualizada:', this.location);
+
+                                    // Registrar acción de cambio de ubicación
+                                    await this.registrarAccion('Cambio de ubicación');
+                                }
                             },
                             (error) => {
                                 console.error('Error al obtener la ubicación:', error.message);
@@ -187,15 +204,18 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
-        logout() {
+        async logout() {
             Swal.fire({
                 title: '¿Estás seguro de que deseas cerrar sesión?',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Sí, cerrar sesión',
                 cancelButtonText: 'Cancelar'
-            }).then((result) => {
+            }).then(async (result) => {
                 if (result.isConfirmed) {
+                    // Registrar acción de cierre de sesión antes de limpiar el estado
+                    await this.registrarAccion('Cierre de sesión');
+
                     this.user = null;
                     this.groups = [];
                     this.token = null;
