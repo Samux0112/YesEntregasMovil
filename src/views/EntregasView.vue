@@ -63,11 +63,58 @@ const obtenerJabasYPallets = async (vbeln) => {
     }
 };
 
-// Funciones
-const handleEntregar = () => {
-    showDialog.value = true;
+// Función para calcular la distancia entre dos puntos geográficos usando la fórmula de Haversine
+const calcularDistancia = (lat1, lon1, lat2, lon2) => {
+    const R = 6371e3; // Radio de la Tierra en metros
+    const φ1 = lat1 * Math.PI / 180; // φ, λ en radianes
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    const distancia = R * c; // En metros
+    return distancia;
 };
 
+// Función para verificar la distancia antes de permitir la entrega
+const verificarDistancia = () => {
+    // Obtener la ubicación del usuario desde el localStorage
+    const userLocation = JSON.parse(localStorage.getItem('location')) || { latitude: 0, longitude: 0 };
+    const userLat = parseFloat(userLocation.latitude);
+    const userLon = parseFloat(userLocation.longitude);
+
+    // Calcular la distancia entre el usuario y el cliente
+    const clienteLat = parseFloat(cliente.value.LATITUD);
+    const clienteLon = parseFloat(cliente.value.LONGITUD);
+
+    console.log(`Calculando distancia entre usuario y cliente: (${userLat}, ${userLon}) y (${clienteLat}, ${clienteLon})`);
+
+    const distancia = calcularDistancia(clienteLat, clienteLon, userLat, userLon);
+
+    if (distancia > 100) {
+        Swal.fire({
+            title: 'Advertencia',
+            text: 'Estás a más de 100 metros del cliente. No puedes realizar la entrega.',
+            icon: 'warning',
+            confirmButtonText: 'Entendido'
+        });
+        return false; // No permitir la entrega
+    }
+    return true; // Permitir la entrega
+};
+
+// Función para manejar la entrega
+const handleEntregar = () => {
+    if (verificarDistancia()) {
+        showDialog.value = true;
+    }
+};
+
+// Funciones
 const handleDialogConfirm = async () => {
     showDialog.value = false;
     let estadoCliente = 'pendiente';
@@ -306,33 +353,60 @@ watch(selectedOption, async (newValue) => {
     }
 });
 
+// Inicializar el monitoreo de la ubicación
+const startLocationWatch = () => {
+    if ('geolocation' in navigator) {
+        const successCallback = (position) => {
+            const newLocation = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+            };
+            localStorage.setItem('location', JSON.stringify(newLocation));
+            console.log('Ubicación actualizada:', newLocation);
+        };
+
+        const errorCallback = (error) => {
+            console.error('Error al obtener la ubicación:', error.message);
+        };
+
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+        };
+
+        navigator.geolocation.watchPosition(successCallback, errorCallback, options);
+    } else {
+        console.error('Geolocalización no soportada por el navegador');
+        Swal.fire({
+            title: 'Error',
+            text: 'Geolocalización no soportada por el navegador',
+            icon: 'error',
+            confirmButtonText: 'Entendido'
+        });
+    }
+};
+
 onMounted(() => {
     cargarCliente();
     cargarProductosDesdeAPI();
     cargarProductosDesdeLocalStorage();
+    startLocationWatch(); // Iniciar el monitoreo de la ubicación
 });
 </script>
-
 <template>
     <div>
         <div v-if="cliente">
-            <DataTable
-                :value="arktxList"
-                :paginator="true"
-                :rows="10"
-                dataKey="id"
-                :rowHover="true"
-                filterDisplay="menu"
-                :loading="loading"
-                showGridlines
-            >
+            <DataTable :value="arktxList" :paginator="true" :rows="10" dataKey="id" :rowHover="true"
+                filterDisplay="menu" :loading="loading" showGridlines>
                 <template #header>
                     <div>
                         <div class="font-semibold text-l">Cliente: {{ cliente.NAME1 }}</div>
                         <div class="font-semibold text-l">({{ cliente.NAME2 }})</div>
                         <div class="flex">
                             <div class="font-semibold text-l">{{ cliente.KUNNR }}</div>
-                            <div class="font-semibold text-l ml-2" v-if="arktxList.length > 0"> Dui: {{ arktxList[0].VBELN }}</div>
+                            <div class="font-semibold text-l ml-2" v-if="arktxList.length > 0"> Dui: {{
+                                arktxList[0].VBELN }}</div>
                         </div>
                         <div class="flex">
                             <div class="font-semibold text-l">Items: {{ totalItems }}</div>
@@ -342,7 +416,7 @@ onMounted(() => {
                             <div class="font-semibold text-l"># de JABAS: {{ numeroJabas }}</div>
                             <div class="font-semibold text-l ml-2"># de PALETS: {{ numeroPalets }}</div>
                         </div>
-                        <div class="flex"> 
+                        <div class="flex">
                             <div class="font-semibold text-l">Total KG: {{ totalKgs }}</div>
                         </div>
                         <div class="flex">
@@ -354,29 +428,17 @@ onMounted(() => {
                 <template #loading> Cargando productos, por favor espere. </template>
                 <Column field="ARKTX" header="Descripción" style="min-width: 5rem" />
                 <Column field="FKIMG" header="Cantidad" style="min-width: 5rem" />
-                <Column 
-                    field="entregado" 
-                    header="Confirmar" 
-                    style="min-width: 5rem"
-                >
+                <Column field="entregado" header="Confirmar" style="min-width: 5rem">
                     <template #header>
                         <div class="flex justify-between items-center">
-                            <Button 
-                                v-if="showConfirmButton" 
-                                icon="pi pi-check" 
-                                class="ml-2" 
-                                @click="handleConfirmAll" 
-                            />
+                            <Button v-if="showConfirmButton" icon="pi pi-check" class="ml-2"
+                                @click="handleConfirmAll" />
                         </div>
                     </template>
                     <template #body="slotProps">
                         <div class="flex items-center">
-                            <InputText 
-                                v-model="slotProps.data.entregado" 
-                                class="small-input" 
-                                :disabled="!slotProps.data.editable"
-                                @input="handleInput(slotProps.data)"
-                            />
+                            <InputText v-model="slotProps.data.entregado" class="small-input"
+                                :disabled="!slotProps.data.editable" @input="handleInput(slotProps.data)" />
                         </div>
                     </template>
                 </Column>
@@ -387,9 +449,13 @@ onMounted(() => {
         </div>
         <!-- Dialog Modal -->
         <Dialog header="Seleccionar Opción" v-model:visible="showDialog" :modal="true" :closable="false">
-            <Dropdown v-model="selectedOption" :options="options" option-label="label" option-value="value" placeholder="Seleccione una opción" class="w-full mb-3" />
-            <Dropdown v-if="selectedOption === 'parcial' || selectedOption === 'no_entregado'" v-model="selectedMotivo" :options="motivos" option-label="label" option-value="value" placeholder="Seleccione un motivo" class="w-full mb-3" />
-            <InputText v-if="selectedMotivo && (selectedOption === 'parcial' || selectedOption === 'no_entregado')" v-model="comment" placeholder="Ingrese los comentarios aquí..." rows="3" class="w-full mb-3" />
+            <Dropdown v-model="selectedOption" :options="options" option-label="label" option-value="value"
+                placeholder="Seleccione una opción" class="w-full mb-3" />
+            <Dropdown v-if="selectedOption === 'parcial' || selectedOption === 'no_entregado'" v-model="selectedMotivo"
+                :options="motivos" option-label="label" option-value="value" placeholder="Seleccione un motivo"
+                class="w-full mb-3" />
+            <InputText v-if="selectedMotivo && (selectedOption === 'parcial' || selectedOption === 'no_entregado')"
+                v-model="comment" placeholder="Ingrese los comentarios aquí..." rows="3" class="w-full mb-3" />
             <div class="flex justify-content-end">
                 <Button label="Cancelar" icon="pi pi-times" class="p-button-text" @click="showDialog = false" />
                 <Button label="Aceptar" icon="pi pi-check" class="p-button-text" @click="handleDialogConfirm" />

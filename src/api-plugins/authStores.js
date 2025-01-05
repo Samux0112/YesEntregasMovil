@@ -93,38 +93,37 @@ export const useAuthStore = defineStore('auth', {
                 if ('geolocation' in navigator) {
                     console.log('Solicitando permisos de geolocalización...');
 
-                    const updateLocation = async () => {
-                        navigator.geolocation.getCurrentPosition(
-                            async (position) => {
-                                const newLocation = {
-                                    latitude: position.coords.latitude,
-                                    longitude: position.coords.longitude
-                                };
+                    const successCallback = async (position) => {
+                        const newLocation = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude
+                        };
 
-                                // Si la ubicación ha cambiado, enviar un log
-                                if (!this.location || 
-                                    this.location.latitude !== newLocation.latitude || 
-                                    this.location.longitude !== newLocation.longitude) {
-                                    this.location = newLocation;
-                                    localStorage.setItem('location', JSON.stringify(this.location));
-                                    console.log('Ubicación actualizada:', this.location);
+                        // Si la ubicación ha cambiado, enviar un log
+                        if (!this.location || 
+                            this.location.latitude !== newLocation.latitude || 
+                            this.location.longitude !== newLocation.longitude) {
+                            this.location = newLocation;
+                            localStorage.setItem('location', JSON.stringify(this.location));
+                            console.log('Ubicación actualizada:', this.location);
 
-                                    // Registrar acción de cambio de ubicación
-                                    await this.registrarAccion('Cambio de ubicación');
-                                }
-                            },
-                            (error) => {
-                                console.error('Error al obtener la ubicación:', error.message);
-                            },
-                            {
-                                enableHighAccuracy: true,
-                                timeout: 5000,
-                                maximumAge: 0
-                            }
-                        );
+                            // Registrar acción de cambio de ubicación
+                            await this.registrarAccion('Cambio de ubicación');
+                        }
                     };
-                    updateLocation();
-                    setInterval(updateLocation, 60000); // Actualizar cada 60 segundos
+
+                    const errorCallback = (error) => {
+                        console.error('Error al obtener la ubicación:', error.message);
+                    };
+
+                    const options = {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    };
+
+                    // Usar watchPosition para actualizar la ubicación continuamente
+                    navigator.geolocation.watchPosition(successCallback, errorCallback, options);
                 }
             } catch (error) {
                 console.error('Error al solicitar permisos de ubicación:', error);

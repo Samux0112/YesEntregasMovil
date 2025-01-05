@@ -31,10 +31,92 @@ const submenuOptions = [
 const imageUrl = ref(null);
 
 // Recuperar la geolocalización desde localStorage
-const userLocation = computed(() => {
+const userLocation = ref({ latitude: 0, longitude: 0 });
+
+const updateUserLocation = () => {
     const location = localStorage.getItem('location');
-    return location ? JSON.parse(location) : { latitude: 0, longitude: 0 };
-});
+    if (location) {
+        userLocation.value = JSON.parse(location);
+    }
+};
+
+// Inicializar el monitoreo de la ubicación
+const startLocationWatch = () => {
+    if ('geolocation' in navigator) {
+        const successCallback = (position) => {
+            const newLocation = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+            };
+            if (
+                userLocation.value.latitude !== newLocation.latitude ||
+                userLocation.value.longitude !== newLocation.longitude
+            ) {
+                userLocation.value = newLocation;
+                localStorage.setItem('location', JSON.stringify(newLocation));
+                console.log('Ubicación actualizada:', newLocation);
+            }
+        };
+
+        const errorCallback = (error) => {
+            console.error('Error al obtener la ubicación:', error.message);
+        };
+
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+        };
+
+        navigator.geolocation.watchPosition(successCallback, errorCallback, options);
+    } else {
+        console.error('Geolocalización no soportada por el navegador');
+        Swal.fire({
+            title: 'Error',
+            text: 'Geolocalización no soportada por el navegador',
+            icon: 'error',
+            confirmButtonText: 'Entendido'
+        });
+    }
+};
+
+// Función para calcular la distancia entre dos puntos geográficos usando la fórmula de Haversine
+const calcularDistancia = (lat1, lon1, lat2, lon2) => {
+    const R = 6371e3; // Radio de la Tierra en metros
+    const φ1 = lat1 * Math.PI / 180; // φ, λ en radianes
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    const distancia = R * c; // En metros
+    return distancia / 1000; // Convertir a kilómetros
+};
+
+// Función para recalcular la distancia de todos los clientes
+const recalcularDistanciaClientes = () => {
+    const userLat = userLocation.value.latitude;
+    const userLon = userLocation.value.longitude;
+
+    clientes.value = clientes.value.map(cliente => {
+        const distancia = calcularDistancia(userLat, userLon, parseFloat(cliente.LATITUD), parseFloat(cliente.LONGITUD));
+        return {
+            ...cliente,
+            distancia: distancia.toFixed(2) // Actualizar la distancia
+        };
+    });
+
+    // Actualizar la lista de clientes filtrados
+    clientesFiltrados.value = clientes.value.filter(cliente => {
+        const nombreCoincide = cliente.NAME1.toLowerCase().includes(searchTerm.value.toLowerCase()) || cliente.NAME2.toLowerCase().includes(searchTerm.value.toLowerCase());
+        const estadoCoincide = estadoFiltro.value === 'Todos' ? true : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
+        return nombreCoincide && estadoCoincide;
+    });
+};
 
 // Cargar clientes desde la API
 const cargarClientes = async () => {
@@ -44,10 +126,19 @@ const cargarClientes = async () => {
         });
 
         if (response.data && response.data.length > 0) {
-            const clientesConEstado = response.data.map(cliente => ({
-                ...cliente,
-                estado: cliente.estado || 'pendiente' // Asignar estado inicial como pendiente si no existe
-            }));
+            updateUserLocation(); // Asegúrate de que la ubicación del usuario esté actualizada
+            const userLat = userLocation.value.latitude;
+            const userLon = userLocation.value.longitude;
+
+            const clientesConEstado = response.data.map(cliente => {
+                const distancia = calcularDistancia(userLat, userLon, parseFloat(cliente.LATITUD), parseFloat(cliente.LONGITUD));
+                return {
+                    ...cliente,
+                    estado: cliente.estado || 'pendiente', // Asignar estado inicial como pendiente si no existe
+                    distancia: distancia.toFixed(2) // Calcular y agregar la distancia
+                };
+            });
+
             localStorage.setItem('clientes', JSON.stringify(clientesConEstado));
             localStorage.setItem('ultimaCargaClientes', new Date().toISOString()); // Guardar la fecha de la última carga
             clientes.value = clientesConEstado;
@@ -114,22 +205,10 @@ watch([searchTerm, estadoFiltro], () => {
     });
 });
 
-// Función para calcular la distancia entre dos puntos geográficos usando la fórmula de Haversine
-const calcularDistancia = (lat1, lon1, lat2, lon2) => {
-    const R = 6371e3; // Radio de la Tierra en metros
-    const φ1 = lat1 * Math.PI / 180; // φ, λ en radianes
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-        Math.cos(φ1) * Math.cos(φ2) *
-        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    const distancia = R * c; // En metros
-    return distancia;
-};
+// Watcher para recalcular la distancia cuando cambie la ubicación del usuario
+watch(userLocation, () => {
+    recalcularDistanciaClientes();
+});
 
 //Me lleva a entregas
 const irAEntregas = (cliente) => {
@@ -144,6 +223,7 @@ const irAEntregas = (cliente) => {
     }
 
     // Obtener la ubicación del usuario desde el localStorage
+    updateUserLocation();
     const userLat = userLocation.value.latitude;
     const userLon = userLocation.value.longitude;
 
@@ -162,13 +242,17 @@ const irAEntregas = (cliente) => {
             text: 'Estás a más de 100 metros del cliente.',
             icon: 'warning',
             confirmButtonText: 'Entendido'
+        }).then(() => {
+            // Continuar con la navegación después de mostrar la advertencia
+            localStorage.setItem('clienteSeleccionado', JSON.stringify(cliente));
+            const clienteKunnr = String(cliente.KUNNR); // Asegúrate de convertir KUNNR a string
+            router.push({ name: 'entregas', params: { id: clienteKunnr } });
         });
-        return; // Salir de la función si la distancia es mayor a 100 metros
+    } else {
+        localStorage.setItem('clienteSeleccionado', JSON.stringify(cliente));
+        const clienteKunnr = String(cliente.KUNNR); // Asegúrate de convertir KUNNR a string
+        router.push({ name: 'entregas', params: { id: clienteKunnr } });
     }
-
-    localStorage.setItem('clienteSeleccionado', JSON.stringify(cliente));
-    const clienteKunnr = String(cliente.KUNNR); // Asegúrate de convertir KUNNR a string
-    router.push({ name: 'entregas', params: { id: clienteKunnr } });
 };
 
 // Nueva función para mostrar el submenú
@@ -293,9 +377,12 @@ const handleSubmenuClick = async (option) => {
 };
 
 onMounted(async () => {
-    verificarYcargarClientes()
+    verificarYcargarClientes();
+    updateUserLocation();
+    startLocationWatch(); // Iniciar el monitoreo de la ubicación
 });
 </script>
+
 <template>
     <div class="grid grid-cols-12 gap-8">
         <div class="col-span-12">
@@ -337,10 +424,11 @@ onMounted(async () => {
                                             <span
                                                 class="font-medium text-surface-500 dark:text-surface-400 text-sm">Dirección:
                                                 {{ cliente.STRAS }}</span>
-                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
-                                                cliente.LATITUD }}</span>
-                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
-                                                cliente.LONGITUD }}</span>
+                                            <br>
+                                            <span
+                                                class="font-medium text-surface-500 dark:text-surface-400 text-sm">Distancia
+                                                entre el cliente y tu:
+                                                {{ cliente.distancia }} km</span>
                                         </div>
                                     </div>
                                     <div class="flex flex-col gap-6 mt-6">
@@ -370,6 +458,11 @@ onMounted(async () => {
                                                 <span
                                                     class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
                                                         cliente.NAME2 }}</span>
+                                                <br>
+                                                <span
+                                                    class="font-medium text-surface-500 dark:text-surface-400 text-sm">Distancia
+                                                    entre el cliente y tu:
+                                                    {{ cliente.distancia }} km</span>
                                             </div>
                                             <div class="bg-surface-100 p-1" style="border-radius: 30px">
                                                 <div class="bg-surface-0 flex items-center gap-2 justify-center py-1 px-2"
@@ -377,12 +470,6 @@ onMounted(async () => {
                                                     <span class="text-surface-900 font-medium text-sm">Dirección: {{
                                                         cliente.STRAS }}</span>
                                                     <i class="pi pi-map text-500"></i>
-                                                    <span
-                                                        class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
-                                                            cliente.LATITUD }}</span>
-                                                    <span
-                                                        class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
-                                                            cliente.LONGITUD }}</span>
                                                 </div>
                                             </div>
                                         </div>
