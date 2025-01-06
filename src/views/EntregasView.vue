@@ -432,8 +432,6 @@ onMounted(() => {
                         </div>
                         <div class="flex">
                             <div class="font-semibold text-l">Total KG: {{ totalKgs }}</div>
-                        </div>
-                        <div class="flex">
                             <div class="font-semibold text-l">Comentario: {{ cliente.COMENTARIO }}</div>
                         </div>
                         <div class="flex">
