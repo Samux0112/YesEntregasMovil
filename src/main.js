@@ -18,8 +18,7 @@ import * as Highcharts from 'highcharts'; // Importa Highcharts aquí
 import * as HighchartsVue from 'highcharts-vue'; // Importa HighchartsVue aquí
 import * as Exporting from 'highcharts/modules/exporting';
 import * as ExportData from 'highcharts/modules/export-data';
-import * as HighchartsAccessibility from 'highcharts/modules/accessibility';
-// Inicializar los módulos de exportación
+import * as Accessibility from 'highcharts/modules/accessibility';
 
 const app = createApp(App);
 
