@@ -29,6 +29,8 @@
         "chart.js": "3.3.2",
         "cors": "^2.8.5",
         "express": "^4.21.2",
+        "highcharts": "^12.1.2",
+        "highcharts-vue": "^2.0.1",
         "pinia": "^2.3.0",
         "primeicons": "^7.0.0",
         "primevue": "^4.2.4",

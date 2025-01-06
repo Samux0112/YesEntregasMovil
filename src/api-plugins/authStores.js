@@ -2,6 +2,7 @@ import router from '@/router';
 import axios from 'axios';
 import { defineStore } from 'pinia';
 import Swal from 'sweetalert2';
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
@@ -10,7 +11,8 @@ export const useAuthStore = defineStore('auth', {
         token: null,
         error: null,
         location: null,
-        actions: [] // Para almacenar las acciones del usuario
+        actions: [], // Para almacenar las acciones del usuario
+        isMuted: JSON.parse(localStorage.getItem('isMuted')) || false // Estado de mute
     }),
 
     actions: {
@@ -302,6 +304,46 @@ export const useAuthStore = defineStore('auth', {
 
         async registrarAccion(accion) {
             await this.obtenerUbicacionYEnviarLog(accion);
+        },
+
+        toggleMute() {
+            this.isMuted = !this.isMuted;
+            localStorage.setItem('isMuted', JSON.stringify(this.isMuted));
+            if (this.isMuted) {
+                this.detenerHabla();
+            }
+        },
+
+        detenerHabla() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            } else {
+                TextToSpeech.stop();
+            }
+        },
+
+        async hablarMensaje(mensaje) {
+            if (this.isMuted) {
+                return; // Si está en mute, no hacer nada
+            }
+
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(mensaje);
+                utterance.lang = 'es-ES'; // Configurar el idioma
+                window.speechSynthesis.speak(utterance);
+            } else {
+                try {
+                    await TextToSpeech.speak({
+                        text: mensaje,
+                        lang: 'es-ES',
+                        rate: 1.0,
+                        pitch: 1.0,
+                        volume: 1.0
+                    });
+                } catch (error) {
+                    console.warn('Error al utilizar la síntesis de voz en la plataforma nativa:', error);
+                }
+            }
         }
     }
 });

@@ -69,7 +69,7 @@ const calcularDistancia = (lat1, lon1, lat2, lon2) => {
     const φ1 = lat1 * Math.PI / 180; // φ, λ en radianes
     const φ2 = lat2 * Math.PI / 180;
     const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon1 - lon1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
 
     const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
         Math.cos(φ1) * Math.cos(φ2) *
@@ -135,7 +135,7 @@ const handleDialogConfirm = async () => {
                     'Authorization': `Bearer ${authStore.token}`
                 }
             });
-            estadoCliente = 'atendido';
+            estadoCliente = 'entregado';
             actualizarClientes(estadoCliente);
             Swal.fire('Entregado', 'Todos los productos han sido entregados.', 'success').then(() => {
                 router.push('/clientes'); // Redirige al menú de clientes
@@ -184,13 +184,13 @@ const handleDialogConfirm = async () => {
                     }
                 });
 
-                estadoCliente = 'pendiente';
+                estadoCliente = 'no_entregado';
                 actualizarClientes(estadoCliente);
                 Swal.fire('Guardado', 'Los datos han sido guardados.', 'success').then(() => {
                     router.push('/clientes'); // Redirige al menú de clientes
                 });
             } else {
-                estadoCliente = 'atendido';
+                estadoCliente = 'parcial';
                 actualizarClientes(estadoCliente);
                 Swal.fire('Guardado', 'Los datos han sido guardados.', 'success').then(() => {
                     arktxList.value.forEach(item => item.editable = true); // Activar edición de productos
@@ -348,7 +348,8 @@ const obtenerMotivos = async () => {
         if (Array.isArray(response.data)) {
             motivos.value = response.data.map(motivo => ({
                 label: motivo.descripcion, // Usar 'descripcion' para el label
-                value: motivo.id
+                value: motivo.id,
+                id_tipo: motivo.id_tipo // Agregar id_tipo para filtrado
             }));
         } else {
             console.error('La respuesta de la API no es un array:', response.data);
@@ -362,8 +363,14 @@ const obtenerMotivos = async () => {
 // Watcher para mostrar el botón de confirmar productos entregados cuando se selecciona "Parcial" y cargar motivos
 watch(selectedOption, async (newValue) => {
     showConfirmButton.value = (newValue === 'parcial');
+
     if (newValue === 'parcial' || newValue === 'no_entregado') {
         await obtenerMotivos();
+        if (newValue === 'parcial') {
+            motivos.value = motivos.value.filter(motivo => motivo.id_tipo === 1);
+        } else if (newValue === 'no_entregado') {
+            motivos.value = motivos.value.filter(motivo => motivo.id_tipo === 2);
+        }
     }
 });
 

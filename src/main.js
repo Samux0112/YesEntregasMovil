@@ -13,6 +13,13 @@ import '@/api-plugins/limpiarLocal'; // Importa tu store de autenticación
 import '@/assets/styles.scss';
 import '@/assets/tailwind.css';
 
+// Importar Highcharts y HighchartsVue
+import * as Highcharts from 'highcharts'; // Importa Highcharts aquí
+import * as HighchartsVue from 'highcharts-vue'; // Importa HighchartsVue aquí
+import * as Exporting from 'highcharts/modules/exporting';
+import * as ExportData from 'highcharts/modules/export-data';
+import * as HighchartsAccessibility from 'highcharts/modules/accessibility';
+// Inicializar los módulos de exportación
 
 const app = createApp(App);
 
@@ -32,5 +39,6 @@ app.use(PrimeVue, {
 });
 app.use(ToastService);
 app.use(ConfirmationService);
+app.use(HighchartsVue); // Usar HighchartsVue
 
 app.mount('#app');

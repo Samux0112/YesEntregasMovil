@@ -5,6 +5,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 const router = useRouter();
 const options = ref(['list', 'grid']);
@@ -16,8 +17,6 @@ const username = computed(() => authStore.user?.Username || 'Invitado');
 const clientes = ref([]);
 const estadoFiltro = ref('Pendiente'); // Estado del filtro, inicializado en 'Pendiente'
 const clientesPendientes = ref(0); // Contador de clientes pendientes
-
-// Estado para el submenú
 const showSubmenu = ref(false);
 const submenuCliente = ref(null);
 const submenuOptions = [
@@ -27,10 +26,7 @@ const submenuOptions = [
     { label: 'Llamada Telefónica', value: 'llamada' }
 ];
 
-// Variable para almacenar la URL de la imagen
 const imageUrl = ref(null);
-
-// Recuperar la geolocalización desde localStorage
 const userLocation = ref({ latitude: 0, longitude: 0 });
 
 const updateUserLocation = () => {
@@ -40,7 +36,6 @@ const updateUserLocation = () => {
     }
 };
 
-// Inicializar el monitoreo de la ubicación
 const startLocationWatch = () => {
     if ('geolocation' in navigator) {
         const successCallback = (position) => {
@@ -80,7 +75,6 @@ const startLocationWatch = () => {
     }
 };
 
-// Función para calcular la distancia entre dos puntos geográficos usando la fórmula de Haversine
 const calcularDistancia = (lat1, lon1, lat2, lon2) => {
     const R = 6371e3; // Radio de la Tierra en metros
     const φ1 = lat1 * Math.PI / 180; // φ, λ en radianes
@@ -97,7 +91,6 @@ const calcularDistancia = (lat1, lon1, lat2, lon2) => {
     return distancia / 1000; // Convertir a kilómetros
 };
 
-// Función para recalcular la distancia de todos los clientes
 const recalcularDistanciaClientes = () => {
     const userLat = userLocation.value.latitude;
     const userLon = userLocation.value.longitude;
@@ -110,15 +103,13 @@ const recalcularDistanciaClientes = () => {
         };
     });
 
-    // Actualizar la lista de clientes filtrados
     clientesFiltrados.value = clientes.value.filter(cliente => {
         const nombreCoincide = cliente.NAME1.toLowerCase().includes(searchTerm.value.toLowerCase()) || cliente.NAME2.toLowerCase().includes(searchTerm.value.toLowerCase());
-        const estadoCoincide = estadoFiltro.value === 'Todos' ? true : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
+        const estadoCoincide = estadoFiltro.value === 'Todos' ? true : estadoFiltro.value === 'Atendido' ? ['entregado', 'parcial'].includes(cliente.estado.toLowerCase()) : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
         return nombreCoincide && estadoCoincide;
     });
 };
 
-// Cargar clientes desde la API
 const cargarClientes = async () => {
     try {
         const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/clientes/', {
@@ -139,13 +130,21 @@ const cargarClientes = async () => {
                 };
             });
 
-            localStorage.setItem('clientes', JSON.stringify(clientesConEstado));
+            const clientesGuardados = JSON.parse(localStorage.getItem('clientes')) || [];
+            const clientesActualizados = clientesConEstado.map(cliente => {
+                const clienteGuardado = clientesGuardados.find(c => c.KUNNR === cliente.KUNNR);
+                return clienteGuardado ? { ...cliente, estado: clienteGuardado.estado } : cliente;
+            });
+
+            localStorage.setItem('clientes', JSON.stringify(clientesActualizados));
             localStorage.setItem('ultimaCargaClientes', new Date().toISOString()); // Guardar la fecha de la última carga
-            clientes.value = clientesConEstado;
-            // Contar clientes pendientes
-            clientesPendientes.value = clientesConEstado.filter(cliente => cliente.estado === 'pendiente').length;
-            // Filtrar clientes pendientes inicialmente
-            clientesFiltrados.value = clientesConEstado.filter(cliente => cliente.estado === 'pendiente');
+
+            clientes.value = clientesActualizados;
+            clientesPendientes.value = clientesActualizados.filter(cliente => cliente.estado === 'pendiente').length;
+            clientesFiltrados.value = clientesActualizados.filter(cliente => {
+                const estadoCoincide = estadoFiltro.value === 'Todos' ? true : estadoFiltro.value === 'Atendido' ? ['entregado', 'parcial'].includes(cliente.estado.toLowerCase()) : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
+                return estadoCoincide;
+            });
 
             Swal.fire({
                 title: 'Clientes cargados',
@@ -172,19 +171,18 @@ const cargarClientes = async () => {
     }
 };
 
-// Mostrar clientes guardados en localStorage
 const mostrarClientesGuardados = () => {
     const clientesGuardados = localStorage.getItem('clientes');
     if (clientesGuardados) {
         clientes.value = JSON.parse(clientesGuardados);
-        // Contar clientes pendientes
         clientesPendientes.value = clientes.value.filter(cliente => cliente.estado === 'pendiente').length;
-        // Filtrar clientes pendientes inicialmente
-        clientesFiltrados.value = clientes.value.filter(cliente => cliente.estado === 'pendiente');
+        clientesFiltrados.value = clientes.value.filter(cliente => {
+            const estadoCoincide = estadoFiltro.value === 'Todos' ? true : estadoFiltro.value === 'Atendido' ? ['entregado', 'parcial'].includes(cliente.estado.toLowerCase()) : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
+            return estadoCoincide;
+        });
     }
 };
 
-// Verificar y cargar clientes si no se han cargado hoy
 const verificarYcargarClientes = async () => {
     const ultimaCargaClientes = localStorage.getItem('ultimaCargaClientes');
     const hoy = new Date().toISOString().split('T')[0]; // Fecha actual en formato YYYY-MM-DD
@@ -196,21 +194,18 @@ const verificarYcargarClientes = async () => {
     }
 };
 
-// Watcher para filtrar clientes por nombre y estado
 watch([searchTerm, estadoFiltro], () => {
     clientesFiltrados.value = clientes.value.filter((cliente) => {
         const nombreCoincide = cliente.NAME1.toLowerCase().includes(searchTerm.value.toLowerCase()) || cliente.NAME2.toLowerCase().includes(searchTerm.value.toLowerCase());
-        const estadoCoincide = estadoFiltro.value === 'Todos' ? true : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
+        const estadoCoincide = estadoFiltro.value === 'Todos' ? true : estadoFiltro.value === 'Atendido' ? ['entregado', 'parcial'].includes(cliente.estado.toLowerCase()) : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
         return nombreCoincide && estadoCoincide;
     });
 });
 
-// Watcher para recalcular la distancia cuando cambie la ubicación del usuario
 watch(userLocation, () => {
     recalcularDistanciaClientes();
 });
 
-//Me lleva a entregas
 const irAEntregas = (cliente) => {
     if (!cliente.LATITUD || !cliente.LONGITUD) {
         Swal.fire({
@@ -222,12 +217,20 @@ const irAEntregas = (cliente) => {
         return;
     }
 
-    // Obtener la ubicación del usuario desde el localStorage
+    if (["entregado", "parcial", "no_entregado"].includes(cliente.estado.toLowerCase())) {
+        Swal.fire({
+            title: 'Acción no permitida',
+            text: 'Este cliente ya ha sido atendido y no se puede modificar su estado.',
+            icon: 'info',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
     updateUserLocation();
     const userLat = userLocation.value.latitude;
     const userLon = userLocation.value.longitude;
 
-    // Calcular la distancia entre el usuario y el cliente
     const clienteLat = parseFloat(cliente.LATITUD);
     const clienteLon = parseFloat(cliente.LONGITUD);
 
@@ -236,26 +239,23 @@ const irAEntregas = (cliente) => {
     const distancia = calcularDistancia(clienteLat, clienteLon, userLat, userLon);
 
     if (distancia > 100) {
-        // Mostrar un mensaje de advertencia si la distancia es mayor a 100 metros
         Swal.fire({
             title: 'Advertencia',
             text: 'Estás a más de 100 metros del cliente.',
             icon: 'warning',
             confirmButtonText: 'Entendido'
         }).then(() => {
-            // Continuar con la navegación después de mostrar la advertencia
             localStorage.setItem('clienteSeleccionado', JSON.stringify(cliente));
-            const clienteKunnr = String(cliente.KUNNR); // Asegúrate de convertir KUNNR a string
+            const clienteKunnr = String(cliente.KUNNR);
             router.push({ name: 'entregas', params: { id: clienteKunnr } });
         });
     } else {
         localStorage.setItem('clienteSeleccionado', JSON.stringify(cliente));
-        const clienteKunnr = String(cliente.KUNNR); // Asegúrate de convertir KUNNR a string
+        const clienteKunnr = String(cliente.KUNNR);
         router.push({ name: 'entregas', params: { id: clienteKunnr } });
     }
 };
 
-// Nueva función para mostrar el submenú
 const mostrarSubmenu = async (cliente) => {
     if (cliente) {
         submenuCliente.value = cliente;
@@ -266,7 +266,6 @@ const mostrarSubmenu = async (cliente) => {
     }
 };
 
-// Función para tomar foto
 const tomarFoto = async (kunnr) => {
     try {
         const image = await Camera.getPhoto({
@@ -290,7 +289,6 @@ const tomarFoto = async (kunnr) => {
     }
 };
 
-// Función para enviar la georreferencia
 const enviarGeorreferencia = async (kunnr, latitud, longitud, file) => {
     const formData = new FormData();
     formData.append('kunnr', kunnr);
@@ -309,7 +307,6 @@ const enviarGeorreferencia = async (kunnr, latitud, longitud, file) => {
         Swal.fire('Guardado', 'La georreferencia ha sido guardada correctamente.', 'success');
         console.log('Respuesta de la API:', response.data);
 
-        // Recargar la lista completa de clientes para obtener la información actualizada
         await cargarClientes(); // Esto actualizará el localStorage con la nueva información
     } catch (error) {
         console.error('Error al enviar la georreferencia:', error);
@@ -317,7 +314,6 @@ const enviarGeorreferencia = async (kunnr, latitud, longitud, file) => {
     }
 };
 
-// Funciones para el submenú
 const handleSubmenuClick = async (option) => {
     switch (option.value) {
         case 'georreferencia':
@@ -343,7 +339,6 @@ const handleSubmenuClick = async (option) => {
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        // Enviar la georreferencia al servidor con la imagen
                         enviarGeorreferencia(submenuCliente.value.KUNNR, result.value.latitud, result.value.longitud, result.value.file);
                     }
                 });
@@ -376,10 +371,209 @@ const handleSubmenuClick = async (option) => {
     showSubmenu.value = false;
 };
 
+const anunciarPantallaClientes = async () => {
+    const mensaje = "Esta es la pantalla de clientes. Son los clientes pendientes que se tienen para este día.";
+    
+    if (authStore.isMuted) {
+        return; // Si está en mute, no hacer nada
+    }
+
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(mensaje);
+        utterance.lang = 'es-ES'; // Configurar el idioma
+        window.speechSynthesis.speak(utterance);
+    } else {
+        try {
+            await TextToSpeech.speak({
+                text: mensaje,
+                lang: 'es-ES',
+                rate: 1.0,
+                pitch: 1.0,
+                volume: 1.0
+            });
+        } catch (error) {
+            console.warn('Error al utilizar la síntesis de voz en la plataforma nativa:', error);
+        }
+    }
+};
+
+// Extender Highcharts para la animación personalizada
+(function (H) {
+    H.seriesTypes.pie.prototype.animate = function (init) {
+        const series = this,
+            chart = series.chart,
+            points = series.points,
+            { animation } = series.options,
+            { startAngleRad } = series;
+
+        function fanAnimate(point, startAngleRad) {
+            const graphic = point.graphic,
+                args = point.shapeArgs;
+
+            if (graphic && args) {
+                graphic
+                    .attr({
+                        start: startAngleRad,
+                        end: startAngleRad,
+                        opacity: 1
+                    })
+                    .animate({
+                        start: args.start,
+                        end: args.end
+                    }, {
+                        duration: animation.duration / points.length
+                    }, function () {
+                        if (points[point.index + 1]) {
+                            fanAnimate(points[point.index + 1], args.end);
+                        }
+                        if (point.index === series.points.length - 1) {
+                            series.dataLabelsGroup.animate({
+                                opacity: 1
+                            },
+                            void 0,
+                            function () {
+                                points.forEach(point => {
+                                    point.opacity = 1;
+                                });
+                                series.update({
+                                    enableMouseTracking: true
+                                }, false);
+                                chart.update({
+                                    plotOptions: {
+                                        pie: {
+                                            innerSize: '40%',
+                                            borderRadius: 8
+                                        }
+                                    }
+                                });
+                            });
+                        }
+                    });
+            }
+        }
+
+        if (init) {
+            points.forEach(point => {
+                point.opacity = 0;
+            });
+        } else {
+            fanAnimate(points[0], startAngleRad);
+        }
+    };
+}(Highcharts));
+
+const chartOptions = ref({
+    chart: {
+        type: 'pie',
+        events: {
+            load: function () {
+                var chart = this;
+                var series = chart.series[0];
+
+                series.data.forEach(function (point, i) {
+                    setTimeout(function () {
+                        point.graphic.animate({
+                            translateY: -20
+                        }, {
+                            duration: 1500,
+                            easing: 'easeOutBounce'
+                        });
+                    }, i * 150);
+                });
+            }
+        }
+    },
+    title: {
+        text: 'Distribución de Entregas'
+    },
+    plotOptions: {
+        pie: {
+            allowPointSelect: true,
+            cursor: 'pointer',
+            dataLabels: {
+                enabled: true,
+                format: '<b>{point.name}</b>: {point.percentage:.1f} %'
+            }
+        }
+    },
+    exporting: {
+        enabled: true, // Habilitar opciones de exportación
+        buttons: {
+            contextButton: {
+                menuItems: [
+                    'downloadPNG',
+                    'downloadPDF'
+                ]
+            }
+        }
+    },
+    series: [{
+        name: 'Clientes',
+        colorByPoint: true,
+        animation: {
+            duration: 2000
+        },
+        data: []
+    }]
+});
+
+const verificarActualizacionesCompletas = async () => {
+    const clientesActualizados = JSON.parse(localStorage.getItem('clientes')) || [];
+    const entregasPendientes = clientesActualizados.filter(cliente => cliente.estado === 'pendiente');
+    
+    if (entregasPendientes.length > 0) {
+        Swal.fire({
+            title: 'Advertencia',
+            text: 'Aún hay clientes pendientes de entregar.',
+            icon: 'warning',
+            confirmButtonText: 'Entendido'
+        });
+    } else {
+        const entregados = clientesActualizados.filter(cliente => cliente.estado === 'entregado').length;
+        const parciales = clientesActualizados.filter(cliente => cliente.estado === 'parcial').length;
+        const noEntregados = clientesActualizados.filter(cliente => cliente.estado === 'no_entregado').length;
+
+        chartOptions.value.series[0].data = [
+            { name: 'Entregado', y: entregados },
+            { name: 'Parcial', y: parciales },
+            { name: 'No Entregado', y: noEntregados }
+        ];
+
+        Swal.fire({
+            title: 'Este es un resumen de tu día',
+            html: '<div id="chart-container"></div>',
+            icon: 'success',
+            confirmButtonText: 'Entendido',
+            didOpen: () => {
+                Highcharts.chart('chart-container', chartOptions.value);
+            }
+        }).then(() => {
+            router.push({ name: 'dashboard' });
+        });
+    }
+};
+
+// Método para obtener el color de fondo según el estado del cliente
+const getEstadoColor = (estado) => {
+    switch (estado.toLowerCase()) {
+        case 'entregado':
+            return '#2f4538'; // Verde claro
+        case 'parcial':
+            return '#eeca06'; // Amarillo claro
+        case 'no_entregado':
+            return '#8b0000'; // Rojo claro
+        case 'pendiente':
+        default:
+            return '#000'; // Gris claro
+    }
+};
+
 onMounted(async () => {
-    verificarYcargarClientes();
+    await verificarYcargarClientes();
     updateUserLocation();
-    startLocationWatch(); // Iniciar el monitoreo de la ubicación
+    startLocationWatch();
+
+    anunciarPantallaClientes();
 });
 </script>
 
@@ -416,19 +610,16 @@ onMounted(async () => {
                             <div v-for="(cliente) in slotProps.items" :key="cliente.KUNNR"
                                 class="col-span-12 sm:col-span-6 lg:col-span-4 p-2">
                                 <div class="p-6 border border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-900 rounded flex flex-col"
-                                    :style="{ backgroundColor: cliente.estado === 'atendido' ? '#d4edda' : '#f8d7da' }">
+                                    :style="{ backgroundColor: getEstadoColor(cliente.estado) }">
                                     <div class="flex flex-row justify-between items-start gap-2">
                                         <div>
                                             <span class="text-lg font-semibold">{{ cliente.NAME1 }}</span>
                                             <div class="text-lg font-medium mt-1">{{ cliente.NAME2 }}</div>
-                                            <span
-                                                class="font-medium text-surface-500 dark:text-surface-400 text-sm">Dirección:
-                                                {{ cliente.STRAS }}</span>
+                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">
+                                                Dirección: {{ cliente.STRAS }}</span>
                                             <br>
-                                            <span
-                                                class="font-medium text-surface-500 dark:text-surface-400 text-sm">Distancia
-                                                entre el cliente y tu:
-                                                {{ cliente.distancia }} km</span>
+                                            <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">
+                                                Distancia entre el cliente y tú: {{ cliente.distancia }} km</span>
                                         </div>
                                     </div>
                                     <div class="flex flex-col gap-6 mt-6">
@@ -438,6 +629,7 @@ onMounted(async () => {
                                                 @click="() => mostrarSubmenu(cliente)" />
                                             <Button icon="pi pi-briefcase" label="Visitar"
                                                 class="flex-auto md:flex-initial whitespace-nowrap"
+                                                :disabled="['entregado', 'parcial', 'no_entregado'].includes(cliente.estado.toLowerCase())"
                                                 @click="irAEntregas(cliente)" />
                                         </div>
                                     </div>
@@ -450,19 +642,16 @@ onMounted(async () => {
                         <div class="flex flex-col">
                             <div v-for="(cliente) in slotProps.items" :key="cliente.KUNNR">
                                 <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4"
-                                    :style="{ backgroundColor: cliente.estado === 'atendido' ? '#d4edda' : '#f8d7da' }">
+                                    :style="{ backgroundColor: getEstadoColor(cliente.estado) }">
                                     <div class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6">
                                         <div class="flex flex-row md:flex-col justify-between items-start gap-2">
                                             <div>
                                                 <div class="text-lg font-medium mt-2">{{ cliente.NAME1 }}</div>
-                                                <span
-                                                    class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
-                                                        cliente.NAME2 }}</span>
+                                                <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">
+                                                    {{ cliente.NAME2 }}</span>
                                                 <br>
-                                                <span
-                                                    class="font-medium text-surface-500 dark:text-surface-400 text-sm">Distancia
-                                                    entre el cliente y tu:
-                                                    {{ cliente.distancia }} km</span>
+                                                <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">
+                                                    Distancia entre el cliente y tú: {{ cliente.distancia }} km</span>
                                             </div>
                                             <div class="bg-surface-100 p-1" style="border-radius: 30px">
                                                 <div class="bg-surface-0 flex items-center gap-2 justify-center py-1 px-2"
@@ -480,6 +669,7 @@ onMounted(async () => {
                                                     @click="() => mostrarSubmenu(cliente)" />
                                                 <Button icon="pi pi-briefcase" label="Visitar"
                                                     class="flex-auto md:flex-initial whitespace-nowrap"
+                                                    :disabled="['entregado', 'parcial', 'no_entregado'].includes(cliente.estado.toLowerCase())"
                                                     @click="irAEntregas(cliente)" />
                                             </div>
                                         </div>
@@ -507,5 +697,11 @@ onMounted(async () => {
                     @click="handleSubmenuClick({ value: 'llamada' })" />
             </div>
         </Dialog>
+        
+        <!-- Botón de Terminar Día -->
+        <div v-if="clientesPendientes === 0" class="col-span-12 mt-4">
+            <Button label="Terminar Día" icon="pi pi-check" class="w-full p-2 text-xl"
+                @click="verificarActualizacionesCompletas" />
+        </div>
     </div>
 </template>
