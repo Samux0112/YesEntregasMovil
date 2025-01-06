@@ -26,7 +26,7 @@ const routes = [
                 path: 'clientes', // Nueva ruta para la vista de entregas
                 name: 'clientes',
                 component: () => import('@/views/ClientesView.vue'), // Ruta a la vista de entregas
-                meta: { requiresAuth: true }
+                meta: { requiresAuth: true, requiresDayNotFinished: true }
             },
             {
                 path: 'entregas', // Ruta con un parámetro dinámico pero funciona
@@ -43,12 +43,19 @@ const router = createRouter({
     routes
 });
 
+// Función para verificar si el día ha terminado
+const isDayFinished = () => {
+    return localStorage.getItem('dayFinished') === 'true';
+};
+
 router.beforeEach((to, from, next) => {
     const authStore = useAuthStore();
     authStore.loadSession(); // Cargar sesión si existe
 
     if (to.meta.requiresAuth && !authStore.user) {
         next({ name: 'login' }); // Redirigir al login si no está autenticado
+    } else if (to.meta.requiresDayNotFinished && isDayFinished()) {
+        next({ name: 'dashboard' }); // Redirigir al dashboard si el día ha terminado
     } else {
         next();
     }

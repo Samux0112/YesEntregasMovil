@@ -6,6 +6,8 @@ import Swal from 'sweetalert2';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const router = useRouter();
 const options = ref(['list', 'grid']);
@@ -112,6 +114,7 @@ const recalcularDistanciaClientes = () => {
 
 const cargarClientes = async () => {
     try {
+        localStorage.removeItem('dayFinished'); // Limpiar el estado al cargar nuevos clientes
         const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/clientes/', {
             sortl: username.value,
         });
@@ -398,11 +401,6 @@ const anunciarPantallaClientes = async () => {
     }
 };
 
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
-
-// ... (otros import y configuración)
-
 const chartOptions = ref({
     chart: {
         type: 'pie',
@@ -495,6 +493,14 @@ const exportChartAsPDF = async () => {
     }
 };
 
+// En tu script setup
+const terminarDia = () => {
+    localStorage.setItem('dayFinished', 'true');
+    Swal.fire('Día terminado', 'No puedes acceder a la vista de clientes.', 'success');
+    router.push({ name: 'dashboard' });
+};
+
+// Llama a `terminarDia` en el momento adecuado, por ejemplo, después de verificar actualizaciones completas
 const verificarActualizacionesCompletas = async () => {
     const clientesActualizados = JSON.parse(localStorage.getItem('clientes')) || [];
     const entregasPendientes = clientesActualizados.filter(cliente => cliente.estado === 'pendiente');
@@ -526,7 +532,8 @@ const verificarActualizacionesCompletas = async () => {
                 Highcharts.chart('chart-container', chartOptions.value);
             }
         }).then(() => {
-            router.push({ name: 'dashboard' });
+            // Marcar el día como terminado y redirigir al dashboard
+            terminarDia();
         });
     }
 };
