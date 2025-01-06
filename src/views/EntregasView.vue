@@ -69,7 +69,7 @@ const calcularDistancia = (lat1, lon1, lat2, lon2) => {
     const φ1 = lat1 * Math.PI / 180; // φ, λ en radianes
     const φ2 = lat2 * Math.PI / 180;
     const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const Δλ = (lon1 - lon1) * Math.PI / 180;
 
     const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
         Math.cos(φ1) * Math.cos(φ2) *
@@ -247,14 +247,28 @@ const handleConfirm = (item) => {
 };
 
 // Recuperar el cliente desde localStorage o buscarlo con el id de la URL
-const cargarCliente = () => {
+const cargarCliente = async () => {
     const clienteGuardado = JSON.parse(localStorage.getItem('clienteSeleccionado'));
 
     if (!clienteGuardado) {
         const clienteId = route.params.id;
-        const clientesGuardados = JSON.parse(localStorage.getItem('clientes') || '[]');
-        cliente.value = clientesGuardados.find(c => String(c.KUNNR) === clienteId);
-        console.log('Cliente cargado desde URL:', cliente.value);
+        try {
+            const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/clientes/', {
+                kunnr: clienteId
+            });
+
+            if (response.data && response.data.length > 0) {
+                cliente.value = response.data[0];
+                console.log('Cliente cargado desde API:', cliente.value);
+                localStorage.setItem('clienteSeleccionado', JSON.stringify(cliente.value));
+            } else {
+                console.error('Cliente no encontrado en la API.');
+                cliente.value = null;
+            }
+        } catch (error) {
+            console.error('Error al cargar el cliente desde la API:', error);
+            cliente.value = null;
+        }
     } else {
         cliente.value = clienteGuardado;
         console.log('Cliente cargado desde localStorage:', cliente.value);
@@ -418,6 +432,9 @@ onMounted(() => {
                         </div>
                         <div class="flex">
                             <div class="font-semibold text-l">Total KG: {{ totalKgs }}</div>
+                        </div>
+                        <div class="flex">
+                            <div class="font-semibold text-l">Comentario: {{ cliente.COMENTARIO }}</div>
                         </div>
                         <div class="flex">
                             <Button label="Entregar" icon="pi pi-check" class="" @click="handleEntregar" />
