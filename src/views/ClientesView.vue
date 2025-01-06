@@ -294,6 +294,7 @@ const enviarGeorreferencia = async (kunnr, latitud, longitud, file) => {
     formData.append('kunnr', kunnr);
     formData.append('latitud', latitud);
     formData.append('longitud', longitud);
+    formData.append('comentario', null); // Agregar comentario como null
     if (file) {
         formData.append('file', file);
     }
@@ -397,6 +398,11 @@ const anunciarPantallaClientes = async () => {
     }
 };
 
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+
+// ... (otros import y configuración)
+
 const chartOptions = ref({
     chart: {
         type: 'pie',
@@ -405,18 +411,20 @@ const chartOptions = ref({
                 const chart = this;
                 const series = chart.series[0];
                 series.data.forEach((point, i) => {
-                    point.graphic.attr({
-                        opacity: 0
-                    });
-                    setTimeout(() => {
-                        point.graphic.animate({
-                            opacity: 1,
-                            translateY: -20
-                        }, {
-                            duration: 1500,
-                            easing: 'easeOutBounce'
+                    if (point.graphic) { // Asegurarse de que point.graphic está definido
+                        point.graphic.attr({
+                            opacity: 0
                         });
-                    }, i * 150);
+                        setTimeout(() => {
+                            point.graphic.animate({
+                                opacity: 1,
+                                translateY: -20
+                            }, {
+                                duration: 1500,
+                                easing: 'easeOutBounce'
+                            });
+                        }, i * 150);
+                    }
                 });
             }
         }
@@ -439,8 +447,14 @@ const chartOptions = ref({
         buttons: {
             contextButton: {
                 menuItems: [
-                    'downloadPNG',
-                    'downloadPDF'
+                    {
+                        text: 'Download PNG',
+                        onclick: () => exportChartAsImage('png')
+                    },
+                    {
+                        text: 'Download PDF',
+                        onclick: () => exportChartAsPDF()
+                    }
                 ]
             }
         }
@@ -454,6 +468,32 @@ const chartOptions = ref({
         data: []
     }]
 });
+
+const exportChartAsImage = async (format) => {
+    const chartContainer = document.getElementById('chart-container');
+    if (chartContainer) {
+        const canvas = await html2canvas(chartContainer);
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL(`image/${format}`);
+        link.download = `chart.${format}`;
+        link.click();
+    } else {
+        console.error('Chart container not found');
+    }
+};
+
+const exportChartAsPDF = async () => {
+    const chartContainer = document.getElementById('chart-container');
+    if (chartContainer) {
+        const canvas = await html2canvas(chartContainer);
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('landscape');
+        pdf.addImage(imgData, 'PNG', 10, 10);
+        pdf.save('chart.pdf');
+    } else {
+        console.error('Chart container not found');
+    }
+};
 
 const verificarActualizacionesCompletas = async () => {
     const clientesActualizados = JSON.parse(localStorage.getItem('clientes')) || [];
@@ -478,7 +518,7 @@ const verificarActualizacionesCompletas = async () => {
         ];
 
         Swal.fire({
-            title: 'Este es un resumen de tu día',
+            title: 'Jornada de entregas finalizada correctamente!',
             html: '<div id="chart-container"></div>',
             icon: 'success',
             confirmButtonText: 'Entendido',
