@@ -432,7 +432,7 @@ onMounted(() => {
                         </div>
                         <div class="flex">
                             <div class="font-semibold text-l">Total KG: {{ totalKgs }}</div>
-                            <div class="font-semibold text-l">Comentario: {{ cliente.COMENTARIO }}</div>
+                            <div class="font-semibold text-l ml-2">Comentario: {{ cliente.COMENTARIO }}</div>
                         </div>
                         <div class="flex">
                             <Button label="Entregar" icon="pi pi-check" class="" @click="handleEntregar" />

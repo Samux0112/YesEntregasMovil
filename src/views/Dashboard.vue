@@ -2,7 +2,7 @@
 import { useAuthStore } from '@/api-plugins/authStores';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
@@ -22,6 +22,14 @@ const mensajeBienvenida = ref(''); // Aquí almacenamos el mensaje de la API
 const mensajeIndicativo = ref(''); // Nueva variable para el mensaje indicativo
 const clientesPendientes = ref(0); // Contador de clientes pendientes
 const totalKgsGlobal = ref(0); // Peso total de todas las entregas
+
+// Variable de estado para manejar el mute
+const isMuted = ref(false);
+
+// Leer el estado de mute desde localStorage al montar el componente
+onMounted(() => {
+    isMuted.value = JSON.parse(localStorage.getItem('isMuted')) || false;
+});
 
 // Función para actualizar la fecha y hora cada segundo
 const actualizarFechaHora = () => {
@@ -83,6 +91,10 @@ const obtenerMensajeIndicativo = async () => {
 
 // Función para que el navegador hable un mensaje
 const hablarMensaje = async (mensaje) => {
+    if (isMuted.value) {
+        return; // Si está en mute, no hacer nada
+    }
+
     if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(mensaje);
         utterance.lang = 'es-ES'; // Configurar el idioma
@@ -99,6 +111,15 @@ const hablarMensaje = async (mensaje) => {
         } catch (error) {
             console.warn('Error al utilizar la síntesis de voz en la plataforma nativa:', error);
         }
+    }
+};
+
+// Función para detener la síntesis de voz
+const detenerHabla = () => {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+    } else {
+        TextToSpeech.stop();
     }
 };
 
@@ -184,6 +205,13 @@ onMounted(async () => {
     const mensajeCompleto = `${mensajeBienvenida.value}. ${mensajeIndicativo.value}`;
     hablarMensaje(mensajeCompleto);
 });
+
+// Observar cambios en isMuted para detener el habla instantáneamente
+watch(isMuted, (newVal) => {
+    if (newVal) {
+        detenerHabla();
+    }
+});
 </script>
 
 <template>
@@ -213,6 +241,7 @@ onMounted(async () => {
             <p class="text-xl mt-8">
                 <span class="text-secondary font-semibold">{{ fechaHoraActual }}</span>
             </p>
+            <br>
         </div>
     </div>
 </template>
