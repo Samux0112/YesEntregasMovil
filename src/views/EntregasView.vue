@@ -468,7 +468,7 @@ onMounted(() => {
                     <div class="flex">
                         <div><Button label="Entregar" icon="pi pi-check" @click="handleEntregar" /></div>
                         <div class="ml-2">
-                        <InputText v-model="searchQuery" placeholder="Buscar por ARTX"/>
+                        <InputText v-model="searchQuery" placeholder="Buscar por descripcion"/>
                     
                     </div>
                     </div>
@@ -478,12 +478,6 @@ onMounted(() => {
                 <Column field="ARKTX" header="Descripción" style="min-width: 5rem" />
                 <Column field="FKIMG" header="Cantidad" style="min-width: 5rem" />
                 <Column field="entregado" header="Confirmar" style="min-width: 5rem">
-                    <!-- <template #header>
-                        <div class="flex justify-between items-center">
-                            <Button v-if="showConfirmButton" icon="pi pi-check" class="ml-2"
-                                @click="handleConfirmAll" />
-                        </div>
-                    </template> -->
                     <template #body="slotProps">
                         <div class="flex items-center">
                             <InputText v-model="slotProps.data.entregado" class="small-input"
