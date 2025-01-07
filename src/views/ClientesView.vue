@@ -556,7 +556,7 @@ const getEstadoColor = (estado) => {
             return '#8b0000'; // Rojo claro
         case 'pendiente':
         default:
-            return '#000'; // Gris claro
+            return ''; // Gris claro
     }
 };
 
