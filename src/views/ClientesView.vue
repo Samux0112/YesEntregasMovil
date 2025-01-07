@@ -108,7 +108,7 @@ const recalcularDistanciaClientes = () => {
 
     clientesFiltrados.value = clientes.value.filter(cliente => {
         const nombreCoincide = cliente.NAME1.toLowerCase().includes(searchTerm.value.toLowerCase()) || cliente.NAME2.toLowerCase().includes(searchTerm.value.toLowerCase());
-        const estadoCoincide = estadoFiltro.value === 'Todos' ? true : estadoFiltro.value === 'Atendido' ? ['entregado', 'parcial'].includes(cliente.estado.toLowerCase()) : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
+        const estadoCoincide = estadoFiltro.value === 'Todos' ? true : estadoFiltro.value === 'Atendido' ? ['entregado', 'parcial', 'no_entregado'].includes(cliente.estado.toLowerCase()) : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
         return nombreCoincide && estadoCoincide;
     });
 };
@@ -146,7 +146,7 @@ const cargarClientes = async () => {
             clientes.value = clientesActualizados;
             clientesPendientes.value = clientesActualizados.filter(cliente => cliente.estado === 'pendiente').length;
             clientesFiltrados.value = clientesActualizados.filter(cliente => {
-                const estadoCoincide = estadoFiltro.value === 'Todos' ? true : estadoFiltro.value === 'Atendido' ? ['entregado', 'parcial'].includes(cliente.estado.toLowerCase()) : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
+                const estadoCoincide = estadoFiltro.value === 'Todos' ? true : estadoFiltro.value === 'Atendido' ? ['entregado', 'parcial', 'no_entregado'].includes(cliente.estado.toLowerCase()) : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
                 return estadoCoincide;
             });
 
@@ -181,7 +181,7 @@ const mostrarClientesGuardados = () => {
         clientes.value = JSON.parse(clientesGuardados);
         clientesPendientes.value = clientes.value.filter(cliente => cliente.estado === 'pendiente').length;
         clientesFiltrados.value = clientes.value.filter(cliente => {
-            const estadoCoincide = estadoFiltro.value === 'Todos' ? true : estadoFiltro.value === 'Atendido' ? ['entregado', 'parcial'].includes(cliente.estado.toLowerCase()) : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
+            const estadoCoincide = estadoFiltro.value === 'Todos' ? true : estadoFiltro.value === 'Atendido' ? ['entregado', 'parcial', 'no_entregado'].includes(cliente.estado.toLowerCase()) : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
             return estadoCoincide;
         });
     }
@@ -201,7 +201,7 @@ const verificarYcargarClientes = async () => {
 watch([searchTerm, estadoFiltro], () => {
     clientesFiltrados.value = clientes.value.filter((cliente) => {
         const nombreCoincide = cliente.NAME1.toLowerCase().includes(searchTerm.value.toLowerCase()) || cliente.NAME2.toLowerCase().includes(searchTerm.value.toLowerCase());
-        const estadoCoincide = estadoFiltro.value === 'Todos' ? true : estadoFiltro.value === 'Atendido' ? ['entregado', 'parcial'].includes(cliente.estado.toLowerCase()) : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
+        const estadoCoincide = estadoFiltro.value === 'Todos' ? true : estadoFiltro.value === 'Atendido' ? ['entregado', 'parcial', 'no_entregado'].includes(cliente.estado.toLowerCase()) : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
         return nombreCoincide && estadoCoincide;
     });
 });
@@ -395,7 +395,7 @@ const ordenarPor = ref('');
 watch([searchTerm, estadoFiltro, ordenarPor], () => {
     clientesFiltrados.value = clientes.value.filter((cliente) => {
         const nombreCoincide = cliente.NAME1.toLowerCase().includes(searchTerm.value.toLowerCase()) || cliente.NAME2.toLowerCase().includes(searchTerm.value.toLowerCase());
-        const estadoCoincide = estadoFiltro.value === 'Todos' ? true : estadoFiltro.value === 'Atendido' ? ['entregado', 'parcial'].includes(cliente.estado.toLowerCase()) : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
+        const estadoCoincide = estadoFiltro.value === 'Todos' ? true : estadoFiltro.value === 'Atendido' ? ['entregado', 'parcial', 'no_entregado'].includes(cliente.estado.toLowerCase()) : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
         return nombreCoincide && estadoCoincide;
     }).sort((a, b) => {
         if (ordenarPor.value === 'nombre') {
@@ -407,7 +407,6 @@ watch([searchTerm, estadoFiltro, ordenarPor], () => {
         }
     });
 });
-
 // para el grafico
 const chartOptions = ref({
     chart: {
@@ -590,14 +589,13 @@ onMounted(async () => {
                 <DataView :value="clientesFiltrados" :layout="layout">
                     <template #header>
                         <div class="font-semibold text-xl">Lista de clientes: {{clientesPendientes}}</div>
-                        <!-- Checkboxes para ordenar -->
-            <!-- RadioButtons para ordenar -->
-            <div class="mt-1">
-                <RadioButton id="checkOption1" name="ordenar" v-model="ordenarPor" value="nombre" />
-                <label for="checkOption1" class="ml-2">Ordenar por nombre</label>
-                <RadioButton id="checkOption2" name="ordenar" v-model="ordenarPor" value="distancia" class="ml-2" />
-                <label for="checkOption2" class="ml-2">Ordenar por distancia</label>
-            </div>
+                        <!-- RadioButtons para ordenar -->
+                        <div class="mt-1">
+                            <RadioButton id="checkOption1" name="ordenar" v-model="ordenarPor" value="nombre" />
+                            <label for="checkOption1" class="ml-2">Ordenar por nombre</label>
+                            <RadioButton id="checkOption2" name="ordenar" v-model="ordenarPor" value="distancia" class="ml-2" />
+                            <label for="checkOption2" class="ml-2">Ordenar por distancia</label>
+                        </div>
                         <div class="flex justify-end">
                             <SelectButton v-model="layout" :options="options" :allowEmpty="false">
                                 <template #option="{ option }">

@@ -421,6 +421,15 @@ const startLocationWatch = () => {
         });
     }
 };
+// Añadir propiedad searchQuery
+const searchQuery = ref('');
+
+// Computed para filtrar arktxList
+const filteredArktxList = computed(() => {
+    return arktxList.value.filter(item => 
+        item.ARKTX.toLowerCase().includes(searchQuery.value.toLowerCase())
+    );
+});
 
 onMounted(() => {
     cargarCliente();
@@ -432,7 +441,7 @@ onMounted(() => {
 <template>
     <div>
         <div v-if="cliente">
-            <DataTable :value="arktxList" :paginator="true" :rows="10" dataKey="id" :rowHover="true"
+            <DataTable :value="filteredArktxList" :paginator="true" :rows="10" dataKey="id" :rowHover="true"
                 filterDisplay="menu" :loading="loading" showGridlines>
                 <template #header>
                     <div>
@@ -455,9 +464,13 @@ onMounted(() => {
                             <div class="font-semibold text-l">Total KG: {{ totalKgs }}</div>
                             <div class="font-semibold text-l ml-2">Comentario: {{ cliente.COMENTARIO }}</div>
                         </div>
-                        <div class="flex">
-                            <Button label="Entregar" icon="pi pi-check" class="" @click="handleEntregar" />
-                        </div>
+                    </div>
+                    <div class="flex">
+                        <div><Button label="Entregar" icon="pi pi-check" @click="handleEntregar" /></div>
+                        <div class="ml-2">
+                        <InputText v-model="searchQuery" placeholder="Buscar por ARTX"/>
+                    
+                    </div>
                     </div>
                 </template>
                 <template #empty> No se encontraron productos </template>
@@ -465,12 +478,12 @@ onMounted(() => {
                 <Column field="ARKTX" header="Descripción" style="min-width: 5rem" />
                 <Column field="FKIMG" header="Cantidad" style="min-width: 5rem" />
                 <Column field="entregado" header="Confirmar" style="min-width: 5rem">
-                    <template #header>
+                    <!-- <template #header>
                         <div class="flex justify-between items-center">
                             <Button v-if="showConfirmButton" icon="pi pi-check" class="ml-2"
                                 @click="handleConfirmAll" />
                         </div>
-                    </template>
+                    </template> -->
                     <template #body="slotProps">
                         <div class="flex items-center">
                             <InputText v-model="slotProps.data.entregado" class="small-input"
