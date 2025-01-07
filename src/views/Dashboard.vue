@@ -143,24 +143,36 @@ const handleEntrega = () => {
     router.push('/clientes'); // Redirige a la ruta de entregas
 };
 
+// Función para verificar y cargar clientes
+const verificarYcargarClientes = async () => {
+    const ultimaCarga = localStorage.getItem('ultimaCargaClientes');
+    const ahora = new Date().toISOString();
+    const diferencia = new Date(ahora) - new Date(ultimaCarga);
+
+    // Si la última carga fue hace más de 24 horas, recargar los clientes
+    if (!ultimaCarga || diferencia > 24 * 60 * 60 * 1000) {
+        await cargarClientesPendientes();
+    } else {
+        const clientesGuardados = JSON.parse(localStorage.getItem('clientes'));
+        if (clientesGuardados) {
+            clientesPendientes.value = clientesGuardados.filter(cliente => cliente.estado === 'pendiente').length;
+        }
+    }
+};
+
 // Actualizar la fecha y hora cada segundo
 onMounted(async () => {
     actualizarFechaHora();
     setInterval(actualizarFechaHora, 1000);
-
     // Solicitar permisos de geolocalización
     await authStore.requestLocationPermissions();
-
-    // Cargar clientes pendientes
-    await cargarClientesPendientes();
-
+    // Verificar y cargar clientes pendientes
+    await verificarYcargarClientes();
     // Obtener el peso total de todas las entregas
     await obtenerTotalKgsGlobal();
-
     // Obtener el mensaje de bienvenida e indicativo al montar el componente
     await obtenerMensajeBienvenida();
     await obtenerMensajeIndicativo();
-
     // Concatenar y hablar ambos mensajes
     const mensajeCompleto = `${mensajeBienvenida.value}. ${mensajeIndicativo.value}`;
     authStore.hablarMensaje(mensajeCompleto);
@@ -195,7 +207,7 @@ watch(isMuted, (newVal) => {
             </p>
             <br>
             <!-- Botón de inicio de día -->
-            <Button label="Iniciar entregas" class="w-auto p-2 text-sm" @click="handleEntrega"></Button>
+            <Button label="Ver clientes" class="w-auto p-2 text-sm" @click="handleEntrega"></Button>
             <br>
             <!-- Fecha y hora -->
             <p class="text-xl mt-8">

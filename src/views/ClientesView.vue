@@ -221,25 +221,12 @@ const irAEntregas = (cliente) => {
         return;
     }
 
-    if (["entregado", "parcial", "no_entregado"].includes(cliente.estado.toLowerCase())) {
-        Swal.fire({
-            title: 'Acción no permitida',
-            text: 'Este cliente ya ha sido atendido y no se puede modificar su estado.',
-            icon: 'info',
-            confirmButtonText: 'Entendido'
-        });
-        return;
-    }
-
     updateUserLocation();
     const userLat = userLocation.value.latitude;
     const userLon = userLocation.value.longitude;
-
     const clienteLat = parseFloat(cliente.LATITUD);
     const clienteLon = parseFloat(cliente.LONGITUD);
-
     console.log(`Calculando distancia entre usuario y cliente: (${userLat}, ${userLon}) y (${clienteLat}, ${clienteLon})`);
-
     const distancia = calcularDistancia(clienteLat, clienteLon, userLat, userLon);
 
     if (distancia > 100) {
@@ -298,7 +285,7 @@ const enviarGeorreferencia = async (kunnr, latitud, longitud, file) => {
     formData.append('kunnr', kunnr);
     formData.append('latitud', latitud);
     formData.append('longitud', longitud);
-    formData.append('comentario', ''); // Agregar comentario como null
+    formData.append('comentario', null); // Agregar comentario como null
     if (file) {
         formData.append('file', file);
     }
@@ -344,7 +331,7 @@ const handleSubmenuClick = async (option) => {
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        enviarGeorreferencia(submenuCliente.value.KUNNR, result.value.latitud, result.value.longtud, result.value.file);
+                        enviarGeorreferencia(submenuCliente.value.KUNNR, result.value.latitud, result.value.longitud, result.value.file); // Aquí se corrigió "longtud" a "longitud"
                     }
                 });
             }
@@ -402,6 +389,26 @@ const anunciarPantallaClientes = async () => {
     }
 };
 
+const ordenarPorNombre = ref(false);
+const ordenarPorDistancia = ref(false);
+const ordenarPor = ref('');
+watch([searchTerm, estadoFiltro, ordenarPor], () => {
+    clientesFiltrados.value = clientes.value.filter((cliente) => {
+        const nombreCoincide = cliente.NAME1.toLowerCase().includes(searchTerm.value.toLowerCase()) || cliente.NAME2.toLowerCase().includes(searchTerm.value.toLowerCase());
+        const estadoCoincide = estadoFiltro.value === 'Todos' ? true : estadoFiltro.value === 'Atendido' ? ['entregado', 'parcial'].includes(cliente.estado.toLowerCase()) : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
+        return nombreCoincide && estadoCoincide;
+    }).sort((a, b) => {
+        if (ordenarPor.value === 'nombre') {
+            return a.NAME1.localeCompare(b.NAME1);
+        } else if (ordenarPor.value === 'distancia') {
+            return a.distancia - b.distancia;
+        } else {
+            return 0; // Mantener el orden original
+        }
+    });
+});
+
+// para el grafico
 const chartOptions = ref({
     chart: {
         type: 'pie',
@@ -577,11 +584,20 @@ onMounted(async () => {
                 <Dropdown v-model="estadoFiltro" :options="['Pendiente', 'Atendido', 'Todos']"
                     placeholder="Filtrar por estado" class="w-full p-2 border rounded mb-4" />
             </div>
+
             <!-- Mostrar clientes en DataView -->
             <div v-if="clientesFiltrados.length > 0" class="mt-4">
                 <DataView :value="clientesFiltrados" :layout="layout">
                     <template #header>
-                        <div class="font-semibold text-xl">Lista de clientes</div>
+                        <div class="font-semibold text-xl">Lista de clientes: {{clientesPendientes}}</div>
+                        <!-- Checkboxes para ordenar -->
+            <!-- RadioButtons para ordenar -->
+            <div class="mt-1">
+                <RadioButton id="checkOption1" name="ordenar" v-model="ordenarPor" value="nombre" />
+                <label for="checkOption1" class="ml-2">Ordenar por nombre</label>
+                <RadioButton id="checkOption2" name="ordenar" v-model="ordenarPor" value="distancia" class="ml-2" />
+                <label for="checkOption2" class="ml-2">Ordenar por distancia</label>
+            </div>
                         <div class="flex justify-end">
                             <SelectButton v-model="layout" :options="options" :allowEmpty="false">
                                 <template #option="{ option }">
@@ -615,7 +631,6 @@ onMounted(async () => {
                                                 @click="() => mostrarSubmenu(cliente)" />
                                             <Button icon="pi pi-briefcase" label="Visitar"
                                                 class="flex-auto md:flex-initial whitespace-nowrap"
-                                                :disabled="['entregado', 'parcial', 'no_entregado'].includes(cliente.estado.toLowerCase())"
                                                 @click="irAEntregas(cliente)" />
                                         </div>
                                     </div>
@@ -655,7 +670,6 @@ onMounted(async () => {
                                                     @click="() => mostrarSubmenu(cliente)" />
                                                 <Button icon="pi pi-briefcase" label="Visitar"
                                                     class="flex-auto md:flex-initial whitespace-nowrap"
-                                                    :disabled="['entregado', 'parcial', 'no_entregado'].includes(cliente.estado.toLowerCase())"
                                                     @click="irAEntregas(cliente)" />
                                             </div>
                                         </div>

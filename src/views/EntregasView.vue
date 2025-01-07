@@ -144,6 +144,13 @@ const handleDialogConfirm = async () => {
             console.error('Error al actualizar la entrega:', error);
             Swal.fire('Error', 'Hubo un error al actualizar la entrega.', 'error');
         }
+        
+        // Llamar a registrarEntrega en el authStore con kunnag y vbeln
+        if (arktxList.value.length > 0) {
+            const kunnag = cliente.value.KUNNR;
+            const vbeln = arktxList.value[0].VBELN;
+            await authStore.registrarEntrega(kunnag, vbeln);
+        }
     } else if (selectedOption.value === 'parcial' || selectedOption.value === 'no_entregado') {
         if (!selectedMotivo.value) {
             Swal.fire('Error', 'Por favor seleccione un motivo.', 'error');
@@ -199,6 +206,13 @@ const handleDialogConfirm = async () => {
         } catch (error) {
             console.error('Error al actualizar el complemento:', error);
             Swal.fire('Error', 'Hubo un error al actualizar el complemento.', 'error');
+        }
+        
+        // Llamar a registrarEntrega en el authStore con kunnag y vbeln
+        if (arktxList.value.length > 0) {
+            const kunnag = cliente.value.KUNNR;
+            const vbeln = arktxList.value[0].VBELN;
+            await authStore.registrarEntrega(kunnag, vbeln);
         }
     }
 };

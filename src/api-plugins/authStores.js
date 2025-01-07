@@ -249,7 +249,7 @@ export const useAuthStore = defineStore('auth', {
             return this.groups.includes(groupName);
         },
 
-        async obtenerUbicacionYEnviarLog(accion) {
+        async obtenerUbicacionYEnviarLog(accion, kunnag = null, vbeln = null) {
             if ('geolocation' in navigator) {
                 navigator.geolocation.getCurrentPosition(async (position) => {
                     this.location = {
@@ -272,6 +272,8 @@ export const useAuthStore = defineStore('auth', {
                             'Username': this.user?.Username || 'No disponible',
                             'latitud': this.location.latitude.toString(),
                             'longitud': this.location.longitude.toString(),
+                            'kunnag': kunnag,
+                            'vbeln': vbeln
                         }
                     };
 
@@ -304,6 +306,11 @@ export const useAuthStore = defineStore('auth', {
 
         async registrarAccion(accion) {
             await this.obtenerUbicacionYEnviarLog(accion);
+        },
+
+        async registrarEntrega(kunnag, vbeln) {
+            const accion = 'Entrega realizada'; // Nombre de la acción específica
+            await this.obtenerUbicacionYEnviarLog(accion, kunnag, vbeln);
         },
 
         toggleMute() {
