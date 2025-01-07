@@ -228,7 +228,19 @@ const actualizarClientes = (estado) => {
 };
 
 // Manejar la confirmación de productos entregados
+// Manejar la confirmación de productos entregados
 const handleConfirmAll = async () => {
+    // Validar todas las entradas antes de proceder
+    const invalidItems = arktxList.value.filter(item => {
+        const entregado = parseInt(item.entregado);
+        return isNaN(entregado) || entregado > item.FKIMG || entregado < 0;
+    });
+
+    if (invalidItems.length > 0) {
+        Swal.fire('Error', 'Hay cantidades ingresadas que son inválidas. Por favor corrígelas antes de confirmar.', 'error');
+        return; // No proceder si hay entradas inválidas
+    }
+
     const entregadoData = arktxList.value.map(item => ({
         vbeln: item.VBELN,
         posnr: item.POSNR,
@@ -252,6 +264,19 @@ const handleConfirmAll = async () => {
         Swal.fire('Error', 'Hubo un error al confirmar la entrega.', 'error');
     }
 };
+
+// Manejar la edición de la cantidad entregada
+function handleInput(data) {
+    const originalValue = data.entregado;
+    data.entregado = data.entregado.replace(/\D/g, '');
+
+    if (originalValue !== data.entregado) {
+        Swal.fire('Error', 'Solo se deben ingresar números.', 'error');
+    } else if (parseInt(data.entregado) > data.FKIMG || parseInt(data.entregado) < 0) {
+        Swal.fire('Error', 'El valor de entregado debe ser igual o menor que la cantidad y mayor o igual a 0.', 'error');
+        data.entregado = originalValue; // Revertir al valor original si no cumple la validación
+    }
+}
 
 // Manejar la edición de la cantidad entregada
 const handleConfirm = (item) => {
@@ -513,7 +538,7 @@ onMounted(() => {
     </div>
 </template>
 
-<script>
+<!-- <script>
 function handleInput(data) {
     const originalValue = data.entregado;
     data.entregado = data.entregado.replace(/\D/g, '');
@@ -525,7 +550,7 @@ function handleInput(data) {
         data.entregado = originalValue; // Revertir al valor original si no cumple la validación
     }
 }
-</script>
+</script> -->
 
 <style scoped>
 .small-input {
