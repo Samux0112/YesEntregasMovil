@@ -478,6 +478,10 @@ onMounted(() => {
                 <Column field="ARKTX" header="Descripción" style="min-width: 5rem" />
                 <Column field="FKIMG" header="Cantidad" style="min-width: 5rem" />
                 <Column field="entregado" header="Confirmar" style="min-width: 5rem">
+                        <div class="flex justify-between items-center">
+                            <Button v-if="showConfirmButton" icon="pi pi-check" class="ml-2"
+                                @click="handleConfirmAll" />
+                        </div>
                     <template #body="slotProps">
                         <div class="flex items-center">
                             <InputText v-model="slotProps.data.entregado" class="small-input"
