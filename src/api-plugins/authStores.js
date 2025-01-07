@@ -76,7 +76,16 @@ export const useAuthStore = defineStore('auth', {
 
             } catch (err) {
                 console.error('Error al autenticar:', err);
-                this.error = err.message || 'Usuario o contraseña incorrectos.';
+
+                // Verificar si el error es por credenciales incorrectas
+                if (err.response && err.response.status === 401) {
+                    this.error = 'Usuario o contraseña incorrectos.';
+                } else if (err.response && err.response.status === 500) {
+                    this.error = 'Usuario o contraseña incorrectos.';
+                } else {
+                    this.error = err.message || 'Ocurrió un error inesperado.';
+                }
+
                 Swal.fire({
                     title: 'Error',
                     text: this.error,

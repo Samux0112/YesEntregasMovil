@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
+import Swal from 'sweetalert2';
 
 const username = ref('');
 const password = ref('');
@@ -24,6 +25,16 @@ watch(password, (newValue) => {
 
 // Función para manejar el inicio de sesión
 const handleLogin = async () => {
+    if (!username.value || !password.value) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Todos los campos son obligatorios',
+            icon: 'error',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+    
     try {
         await authStore.login(username.value, password.value); // Llamamos la acción login
         router.push('/dashboard'); // Redirige al dashboard si el login es exitoso
