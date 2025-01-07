@@ -8,6 +8,7 @@ import { useRouter } from 'vue-router';
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+// import Highcharts from 'highcharts';
 
 const router = useRouter();
 const options = ref(['list', 'grid']);
@@ -297,7 +298,7 @@ const enviarGeorreferencia = async (kunnr, latitud, longitud, file) => {
     formData.append('kunnr', kunnr);
     formData.append('latitud', latitud);
     formData.append('longitud', longitud);
-    formData.append('comentario', null); // Agregar comentario como null
+    formData.append('comentario', ''); // Agregar comentario como null
     if (file) {
         formData.append('file', file);
     }
@@ -343,7 +344,7 @@ const handleSubmenuClick = async (option) => {
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        enviarGeorreferencia(submenuCliente.value.KUNNR, result.value.latitud, result.value.longitud, result.value.file);
+                        enviarGeorreferencia(submenuCliente.value.KUNNR, result.value.latitud, result.value.longtud, result.value.file);
                     }
                 });
             }
