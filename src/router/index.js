@@ -38,7 +38,7 @@ const routes = [
                 path: 'resumen', // Nueva ruta para la vista de resumen
                 name: 'resumen',
                 component: () => import('@/views/ResumenView.vue'),
-                meta: { requiresAuth: true, requiresDayFinished: true }
+                meta: { requiresAuth: true }
             }
         ]
     }

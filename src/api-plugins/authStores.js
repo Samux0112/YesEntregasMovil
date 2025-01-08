@@ -1,9 +1,9 @@
+import { useLayout } from "@/layout/composables/layout";
 import router from '@/router';
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 import axios from 'axios';
 import { defineStore } from 'pinia';
-import Swal from 'sweetalert2';
-import { TextToSpeech } from '@capacitor-community/text-to-speech';
-
+const { showAlert } = useLayout();
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         user: null,
@@ -39,7 +39,7 @@ export const useAuthStore = defineStore('auth', {
                 const hasRequiredGroup = this.groups.includes('YesEntregas-Entregador');
                 if (!hasRequiredGroup) {
                     // Mostrar mensaje de error
-                    Swal.fire({
+                    showAlert({
                         title: 'Acceso Denegado',
                         text: 'No tienes los permisos necesarios para acceder a este sistema.',
                         icon: 'error',
@@ -57,7 +57,7 @@ export const useAuthStore = defineStore('auth', {
                 this.setAxiosToken(this.token);
 
                 // Alerta de inicio de sesión exitoso
-                Swal.fire({
+                showAlert({
                     title: '¡Inicio de sesión exitoso!',
                     text: `Bienvenido, ${this.user?.Username || 'Usuario'}`,
                     icon: 'success',
@@ -86,7 +86,7 @@ export const useAuthStore = defineStore('auth', {
                     this.error = err.message || 'Ocurrió un error inesperado.';
                 }
 
-                Swal.fire({
+                showAlert({
                     title: 'Error',
                     text: this.error,
                     icon: 'error',
@@ -138,7 +138,7 @@ export const useAuthStore = defineStore('auth', {
                 }
             } catch (error) {
                 console.error('Error al solicitar permisos de ubicación:', error);
-                Swal.fire({
+                showAlert({
                     title: 'Error al solicitar permisos',
                     text: 'No se pudo acceder a la ubicación. Asegúrate de habilitar los permisos.',
                     icon: 'error',
@@ -161,7 +161,7 @@ export const useAuthStore = defineStore('auth', {
                         },
                         (error) => {
                             console.error('Error obteniendo la geolocalización:', error);
-                            Swal.fire({
+                            showAlert({
                                 title: 'Error',
                                 text: 'No se pudo obtener la ubicación. Asegúrate de que los permisos están habilitados.',
                                 icon: 'error',
@@ -173,7 +173,7 @@ export const useAuthStore = defineStore('auth', {
                     );
                 } else {
                     console.error('Geolocalización no soportada por el navegador');
-                    Swal.fire({
+                    showAlert({
                         title: 'Error',
                         text: 'Geolocalización no soportada por el navegador',
                         icon: 'error',
@@ -215,7 +215,7 @@ export const useAuthStore = defineStore('auth', {
         },
 
         async logout() {
-            Swal.fire({
+            showAlert({
                 title: '¿Estás seguro de que deseas cerrar sesión?',
                 icon: 'warning',
                 showCancelButton: true,
@@ -238,7 +238,7 @@ export const useAuthStore = defineStore('auth', {
 
                     delete axios.defaults.headers.common['Authorization'];
 
-                    Swal.fire({
+                    showAlert({
                         title: 'Has cerrado sesión correctamente.',
                         icon: 'success',
                         timer: 2000,

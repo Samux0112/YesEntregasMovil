@@ -1,11 +1,12 @@
-import { computed, reactive, onMounted, watch } from 'vue';
+import Swal from 'sweetalert2';
+import { computed, onMounted, reactive, watch } from 'vue';
 
 const layoutConfig = reactive({
     preset: 'Aura',
     primary: 'orange',
     surface: null,
     darkTheme: false,
-    menuMode: 'static'
+    menuMode: 'static',
 });
 
 const layoutState = reactive({
@@ -15,7 +16,7 @@ const layoutState = reactive({
     configSidebarVisible: false,
     staticMenuMobileActive: false,
     menuHoverActive: false,
-    activeMenuItem: null
+    activeMenuItem: null,
 });
 
 export function useLayout() {
@@ -73,6 +74,37 @@ export function useLayout() {
         document.documentElement.classList.toggle('app-dark', newVal);
     });
 
+    // Function to show SweetAlert2 alert adapted to the current theme
+    const showAlert = (titleOrOptions, text = '', icon = '', customOptions = {}) => {
+        const isDark = layoutConfig.darkTheme;
+        const primaryColor = getPrimary.value;
+        const backgroundColor = isDark ? "#09090b" : "#ffffff";
+        const textColor = isDark ? "#ffffff" : "#000000";
+
+        let options = {};
+
+        if (typeof titleOrOptions === 'object') {
+            options = {
+                background: backgroundColor,
+                color: textColor,
+                confirmButtonColor: primaryColor,
+                ...titleOrOptions,
+            };
+        } else {
+            options = {
+                title: titleOrOptions,
+                text,
+                icon,
+                background: backgroundColor,
+                color: textColor,
+                confirmButtonColor: primaryColor,
+                ...customOptions,
+            };
+        }
+
+        return Swal.fire(options);
+    };
+
     return {
         layoutConfig,
         layoutState,
@@ -83,5 +115,6 @@ export function useLayout() {
         getSurface,
         setActiveMenuItem,
         toggleDarkMode,
+        showAlert,
     };
 }

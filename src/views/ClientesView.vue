@@ -3,13 +3,15 @@ import { useAuthStore } from "@/api-plugins/authStores";
 import { TextToSpeech } from "@capacitor-community/text-to-speech";
 import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import axios from "axios";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import Swal from "sweetalert2";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-// import Highcharts from 'highcharts';
 
+//este hay que descomentariar si se compila en produccion o en este caso apk
+import { useLayout } from "@/layout/composables/layout";
+// import Highcharts from "highcharts";
+const { showAlert } = useLayout();
+const { getPrimary, isDarkTheme } = useLayout();
 const router = useRouter();
 const options = ref(["list", "grid"]);
 const layout = ref("grid"); // Inicializa en 'grid'
@@ -75,7 +77,7 @@ const startLocationWatch = () => {
     );
   } else {
     console.error("Geolocalización no soportada por el navegador");
-    Swal.fire({
+    showAlert({
       title: "Error",
       text: "Geolocalización no soportada por el navegador",
       icon: "error",
@@ -199,14 +201,14 @@ const cargarClientes = async () => {
         return estadoCoincide;
       });
 
-      Swal.fire({
+      showAlert({
         title: "Clientes cargados",
         text: "Los clientes han sido cargados y guardados correctamente.",
         icon: "success",
         confirmButtonText: "Entendido",
       });
     } else {
-      Swal.fire({
+      showAlert({
         title: "Sin clientes",
         text: "No se encontraron clientes para el usuario proporcionado.",
         icon: "info",
@@ -215,7 +217,7 @@ const cargarClientes = async () => {
     }
   } catch (error) {
     console.error("Error al cargar los clientes:", error);
-    Swal.fire({
+    showAlert({
       title: "Error",
       text: "Hubo un problema al cargar los clientes.",
       icon: "error",
@@ -289,7 +291,7 @@ watch(userLocation, () => {
 
 const irAEntregas = (cliente) => {
   if (!cliente.LATITUD || !cliente.LONGITUD) {
-    Swal.fire({
+    showAlert({
       title: "Ubicación no disponible",
       text: "El cliente no tiene una ubicación registrada. Puedes tomar la georreferencia desde el botón más y actualizar la información del cliente.",
       icon: "info",
@@ -309,7 +311,7 @@ const irAEntregas = (cliente) => {
   const distancia = calcularDistancia(clienteLat, clienteLon, userLat, userLon);
 
   if (distancia > 100) {
-    Swal.fire({
+    showAlert({
       title: "Advertencia",
       text: "Estás a más de 100 metros del cliente.",
       icon: "warning",
@@ -364,7 +366,7 @@ const enviarGeorreferencia = async (kunnr, latitud, longitud, file) => {
   formData.append("kunnr", kunnr);
   formData.append("latitud", latitud);
   formData.append("longitud", longitud);
-  formData.append("comentario", null); // Agregar comentario como null
+  formData.append("comentario", ""); // Agregar comentario como null
   if (file) {
     formData.append("file", file);
   }
@@ -379,7 +381,7 @@ const enviarGeorreferencia = async (kunnr, latitud, longitud, file) => {
         },
       }
     );
-    Swal.fire(
+    showAlert(
       "Guardado",
       "La georreferencia ha sido guardada correctamente.",
       "success"
@@ -389,7 +391,7 @@ const enviarGeorreferencia = async (kunnr, latitud, longitud, file) => {
     await cargarClientes(); // Esto actualizará el localStorage con la nueva información
   } catch (error) {
     console.error("Error al enviar la georreferencia:", error);
-    Swal.fire(
+    showAlert(
       "Error",
       "Hubo un problema al guardar la georreferencia.",
       "error"
@@ -404,7 +406,7 @@ const handleSubmenuClick = async (option) => {
       if (fotoFile) {
         const userLat = userLocation.value.latitude;
         const userLon = userLocation.value.longitude;
-        Swal.fire({
+        showAlert({
           title: "Tomar Georreferencia",
           html: `
                         <p>Latitud: ${userLat}</p>
@@ -435,7 +437,7 @@ const handleSubmenuClick = async (option) => {
     case "ruta":
       const urlWaze = `https://www.waze.com/ul?ll=${userLocation.value.latitude},${userLocation.value.longitude}&navigate=yes`;
       const urlMaps = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.value.latitude},${userLocation.value.longitude}&destination=${submenuCliente.value.LATITUD},${submenuCliente.value.LONGITUD}`;
-      Swal.fire({
+      showAlert({
         title: "Graficar Ruta",
         html: `
                     <button onclick="window.open('${urlWaze}', '_blank')" class="swal2-confirm swal2-styled">Abrir en Waze
@@ -520,6 +522,7 @@ watch([searchTerm, estadoFiltro, ordenarPor], () => {
 });
 
 // para el grafico
+// Define las opciones iniciales del gráfico
 const chartOptions = ref({
   chart: {
     type: "pie",
@@ -529,10 +532,7 @@ const chartOptions = ref({
         const series = chart.series[0];
         series.data.forEach((point, i) => {
           if (point.graphic) {
-            // Asegurarse de que point.graphic está definido
-            point.graphic.attr({
-              opacity: 0,
-            });
+            point.graphic.attr({ opacity: 0 });
             setTimeout(() => {
               point.graphic.animate(
                 {
@@ -549,34 +549,27 @@ const chartOptions = ref({
         });
       },
     },
+    backgroundColor: null,
   },
   title: {
     text: "Distribución de Entregas",
+    style: {
+      color: null,
+    },
   },
   plotOptions: {
     pie: {
       allowPointSelect: true,
       cursor: "pointer",
+      innerSize: "50%",
+      depth: 45,
       dataLabels: {
         enabled: true,
         format: "<b>{point.name}</b>: {point.percentage:.1f} %",
-      },
-    },
-  },
-  exporting: {
-    enabled: true, // Habilitar opciones de exportación
-    buttons: {
-      contextButton: {
-        menuItems: [
-          {
-            text: "Descargar imagen",
-            onclick: () => exportChartAsImage("png"),
-          },
-          {
-            text: "Descargar PDF",
-            onclick: () => exportChartAsPDF(),
-          },
-        ],
+        style: {
+          color: null,
+          textOutline: "none",
+        },
       },
     },
   },
@@ -592,40 +585,51 @@ const chartOptions = ref({
   ],
 });
 
-const exportChartAsImage = async (format) => {
-  const chartContainer = document.getElementById("chart-container");
-  if (chartContainer) {
-    const canvas = await html2canvas(chartContainer);
-    const link = document.createElement("a");
-    link.href = canvas.toDataURL(`image/${format}`);
-    link.download = `chart.${format}`;
-    link.click();
-  } else {
-    console.error("Chart container not found");
-  }
-};
+// Actualiza las opciones del gráfico, incluyendo datos y tema
+const updateChartOptions = () => {
+  // Obtener datos actualizados
+  const clientesActualizados =
+    JSON.parse(localStorage.getItem("clientes")) || [];
+  const entregados = clientesActualizados.filter(
+    (cliente) => cliente.estado === "entregado"
+  ).length;
+  const parciales = clientesActualizados.filter(
+    (cliente) => cliente.estado === "parcial"
+  ).length;
+  const noEntregados = clientesActualizados.filter(
+    (cliente) => cliente.estado === "no_entregado"
+  ).length;
 
-const exportChartAsPDF = async () => {
+  // Obtener tema actual
+  const isDark = isDarkTheme.value;
+  const textColor = isDark ? "#ffffff" : "#000000";
+  const backgroundColor = isDark ? "#09090b" : "#ffffff";
+
+  // Actualizar opciones del gráfico
+  chartOptions.value.chart.backgroundColor = backgroundColor;
+  chartOptions.value.title.style.color = textColor;
+  chartOptions.value.plotOptions.pie.dataLabels.style.color = textColor;
+  chartOptions.value.series[0].data = [
+    { name: "Entregado", y: entregados, color: "#88dc65" },
+    { name: "Parcial", y: parciales, color: "#eeca06" },
+    { name: "No Entregado", y: noEntregados, color: "#ff6961" },
+  ];
+
+  // Renderizar el gráfico
   const chartContainer = document.getElementById("chart-container");
   if (chartContainer) {
-    const canvas = await html2canvas(chartContainer);
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("landscape");
-    pdf.addImage(imgData, "PNG", 10, 10);
-    pdf.save("chart.pdf");
-  } else {
-    console.error("Chart container not found");
+    Highcharts.chart(chartContainer, chartOptions.value);
   }
 };
 
 const terminarDia = () => {
   localStorage.setItem("dayFinished", "true");
-  Swal.fire(
-    "Día terminado",
-    "No puedes acceder a la vista de clientes.",
+  showAlert(
+    "Haz finalizado tus entregas",
+    "Redirigiendo a la pantalla principal",
     "success"
   ).then(() => {
-    router.push({ name: "resumen" });
+    router.push({ name: "dashboard" });
   });
 };
 
@@ -638,7 +642,7 @@ const verificarActualizacionesCompletas = async () => {
   );
 
   if (entregasPendientes.length > 0) {
-    Swal.fire({
+    showAlert({
       title: "Advertencia",
       text: "Aún hay clientes pendientes de entregar.",
       icon: "warning",
@@ -661,7 +665,7 @@ const verificarActualizacionesCompletas = async () => {
       { name: "No Entregado", y: noEntregados },
     ];
 
-    Swal.fire({
+    showAlert({
       title: "Jornada de entregas finalizada correctamente!",
       html: '<div id="chart-container"></div>',
       icon: "success",
@@ -692,9 +696,12 @@ onMounted(async () => {
   await verificarYcargarClientes();
   updateUserLocation();
   startLocationWatch();
-
   anunciarPantallaClientes();
+  updateChartOptions();
 });
+
+// Observa cambios en el tema y actualiza el gráfico
+watch([isDarkTheme, getPrimary], updateChartOptions);
 </script>
 <template>
   <div class="grid grid-cols-12 gap-8">

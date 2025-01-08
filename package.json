@@ -32,7 +32,6 @@
         "highcharts": "^12.1.2",
         "highcharts-vue": "^2.0.1",
         "html2canvas": "^1.4.1",
-        "jspdf": "^2.5.2",
         "pinia": "^2.3.0",
         "primeicons": "^7.0.0",
         "primevue": "^4.2.4",
