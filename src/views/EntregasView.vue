@@ -275,6 +275,8 @@ function handleInput(data) {
     } else if (parseInt(data.entregado) > data.FKIMG || parseInt(data.entregado) < 0) {
         Swal.fire('Error', 'El valor de entregado debe ser igual o menor que la cantidad y mayor o igual a 0.', 'error');
         data.entregado = originalValue; // Revertir al valor original si no cumple la validación
+    } else {
+        data.edited = true; // Marcar como editado
     }
 }
 
@@ -348,7 +350,8 @@ const cargarProductosDesdeAPI = async () => {
                     POSNR: entrega.POSNR,
                     KGS: entrega.KGS,
                     entregado: entrega.FKIMG, // Inicializar con la misma cantidad
-                    editable: false // Inicialmente no editable
+                    editable: false, // Inicialmente no editable
+                    edited: false // Inicialmente no editado
                 }));
                 localStorage.setItem(`productos_${cliente.value.KUNNR}`, JSON.stringify(arktxList.value));
                 console.log('Productos guardados en localStorage:', arktxList.value);
@@ -455,7 +458,11 @@ const filteredArktxList = computed(() => {
         item.ARKTX.toLowerCase().includes(searchQuery.value.toLowerCase())
     );
 });
-
+const rowClass = (data) => {
+    return {
+        'edited-row': data.edited
+    };
+};
 onMounted(() => {
     cargarCliente();
     cargarProductosDesdeAPI();
@@ -493,29 +500,40 @@ onMounted(() => {
                     <div class="flex">
                         <div><Button label="Entregar" icon="pi pi-check" @click="handleEntregar" /></div>
                         <div class="ml-2">
-                        <InputText v-model="searchQuery" placeholder="Buscar por descripcion"/>
-                    
-                    </div>
+                            <InputText v-model="searchQuery" placeholder="Buscar por descripcion"/>
+                        </div>
                     </div>
                 </template>
                 <template #empty> No se encontraron productos </template>
                 <template #loading> Cargando productos, por favor espere. </template>
-                <Column field="ARKTX" header="Descripción" style="min-width: 5rem" />
-                <Column field="FKIMG" header="Cantidad" style="min-width: 5rem" />
-                <Column field="entregado" style="min-width: 5rem">
-                    <template #header>
+                <Column field="ARKTX" header="Descripción" style="min-width: 5rem">
+    <template #body="slotProps">
+        <div :class="{ 'edited-row': slotProps.data.edited }" class="cell-content">
+            {{ slotProps.data.ARKTX }}
+        </div>
+    </template>
+</Column>
+<Column field="FKIMG" header="Cantidad" style="min-width: 5rem">
+    <template #body="slotProps">
+        <div :class="{ 'edited-row': slotProps.data.edited }" class="cell-content">
+            {{ slotProps.data.FKIMG }}
+        </div>
+    </template>
+</Column>
+<Column field="entregado" style="min-width: 5rem">
+    <template #header>
                         <div class="flex justify-between items-center">
                             <Button v-if="showConfirmButton" icon="pi pi-check" class="ml-2"
                                 @click="handleConfirmAll" />
                         </div>
                     </template>
-                    <template #body="slotProps">
-                        <div class="flex items-center">
-                            <InputText v-model="slotProps.data.entregado" class="small-input"
-                                :disabled="!slotProps.data.editable" @input="handleInput(slotProps.data)" />
-                        </div>
-                    </template>
-                </Column>
+    <template #body="slotProps">
+        <div :class="{ 'edited-row': slotProps.data.edited }" class="cell-content flex items-center">
+            <InputText v-model="slotProps.data.entregado" class="small-input"
+                :disabled="!slotProps.data.editable" @input="handleInput(slotProps.data)" />
+        </div>
+    </template>
+</Column>
             </DataTable>
         </div>
         <div v-else>
@@ -538,23 +556,13 @@ onMounted(() => {
     </div>
 </template>
 
-<!-- <script>
-function handleInput(data) {
-    const originalValue = data.entregado;
-    data.entregado = data.entregado.replace(/\D/g, '');
-
-    if (originalValue !== data.entregado) {
-        Swal.fire('Error', 'Solo se deben ingresar números.', 'error');
-    } else if (parseInt(data.entregado) > data.FKIMG || parseInt(data.entregado) < 0) {
-        Swal.fire('Error', 'El valor de entregado debe ser igual o menor que la cantidad y mayor o igual a 0.', 'error');
-        data.entregado = originalValue; // Revertir al valor original si no cumple la validación
-    }
-}
-</script> -->
-
 <style scoped>
 .small-input {
     width: 60px;
     padding: 5px;
+}
+
+.edited-row {
+    background-color: #b62121; /* Color rojo claro o pastel para las celdas editadas */
 }
 </style>

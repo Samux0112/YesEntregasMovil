@@ -34,6 +34,12 @@ const routes = [
                 component: () => import('@/views/EntregasView.vue'),
                 meta: { requiresAuth: true } // Componente para la pantalla Entregas
             },
+            {
+                path: 'resumen', // Nueva ruta para la vista de resumen
+                name: 'resumen',
+                component: () => import('@/views/ResumenView.vue'),
+                meta: { requiresAuth: true, requiresDayFinished: true }
+            }
         ]
     }
 ];
@@ -56,6 +62,8 @@ router.beforeEach((to, from, next) => {
         next({ name: 'login' }); // Redirigir al login si no está autenticado
     } else if (to.meta.requiresDayNotFinished && isDayFinished()) {
         next({ name: 'dashboard' }); // Redirigir al dashboard si el día ha terminado
+    } else if (to.meta.requiresDayFinished && !isDayFinished()) {
+        next({ name: 'dashboard' }); // Redirigir al dashboard si el día no ha terminado
     } else {
         next();
     }
