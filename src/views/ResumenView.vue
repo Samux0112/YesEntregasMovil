@@ -22,7 +22,7 @@ const chartOptions = ref({
       depth: 45,
       dataLabels: {
         enabled: true,
-        format: "{point.name}: {point.percentage:.1f} %", // Mostrar nombre y porcentaje
+        format: "{point.name}: {point.percentage:.1f}% ({point.y}) ", // Mostrar nombre y porcentaje
         style: {
           color: null, // Color de texto dinámico
           textOutline: "none",

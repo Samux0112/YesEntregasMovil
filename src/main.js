@@ -14,10 +14,8 @@ import '@/assets/styles.scss';
 import '@/assets/tailwind.css';
 
 // Importar Highcharts y HighchartsVue
-import * as Highcharts from 'highcharts'; // Importa Highcharts aquí
-import * as HighchartsVue from 'highcharts-vue'; // Importa HighchartsVue aquí
-const app = createApp(App);
 
+const app = createApp(App);
 // Crear Pinia
 const pinia = createPinia();
 
@@ -34,7 +32,5 @@ app.use(PrimeVue, {
 });
 app.use(ToastService);
 app.use(ConfirmationService);
-app.use(HighchartsVue);
-app.use(Highcharts);
 
 app.mount('#app');

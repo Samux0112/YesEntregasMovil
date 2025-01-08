@@ -589,7 +589,7 @@ const chartOptions = ref({
       depth: 45,
       dataLabels: {
         enabled: true,
-        format: "<b>{point.name}</b>: {point.percentage:.1f} %",
+        format: "{point.name}: {point.percentage:.1f}% ({point.y}) ",
         style: {
           color: null,
           textOutline: "none",
