@@ -398,7 +398,32 @@ const enviarGeorreferencia = async (kunnr, latitud, longitud, file) => {
     );
   }
 };
+async function obtenerUrlEncuesta() {
+  try {
+    const response = await axios.post(
+      "https://calidad-yesentregas-api.yes.com.sv/etiquetas/",
+      {
+        // Agrega los datos requeridos en el cuerpo de la solicitud
+        param: "url_encuesta", // Asegúrate de reemplazar 'valor_necesario' con el valor correcto que se espera
+      }
+    );
+    const data = response.data;
+    const urlEncuesta = data.find(
+      (item) => item.parametro === "url_encuesta"
+    ).valor;
+    return urlEncuesta;
+  } catch (error) {
+    console.error("Error al obtener la URL de la encuesta:", error);
+    return null;
+  }
+}
 
+async function redirigir() {
+  const urlEncuesta = await obtenerUrlEncuesta();
+  if (urlEncuesta) {
+    window.open(urlEncuesta, "_blank");
+  }
+}
 const handleSubmenuClick = async (option) => {
   switch (option.value) {
     case "georreferencia":
@@ -450,8 +475,7 @@ const handleSubmenuClick = async (option) => {
       });
       break;
     case "encuesta":
-      const urlEncuesta = `https://www.example.com/encuesta?kunnr=${submenuCliente.value.KUNNR}`;
-      window.open(urlEncuesta, "_blank");
+      redirigir();
       break;
     case "llamada":
       const numeroTelefono = submenuCliente.value.TELF1;
