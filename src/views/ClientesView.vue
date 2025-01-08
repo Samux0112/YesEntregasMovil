@@ -9,7 +9,7 @@ import { useRouter } from "vue-router";
 
 //este hay que descomentariar si se compila en produccion o en este caso apk
 import { useLayout } from "@/layout/composables/layout";
-// import Highcharts from "highcharts";
+import Highcharts from "highcharts";
 const { showAlert } = useLayout();
 const { getPrimary, isDarkTheme } = useLayout();
 const router = useRouter();
