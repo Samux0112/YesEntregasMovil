@@ -218,8 +218,6 @@ const verificarFinalizacionDia = () => {
 onMounted(async () => {
   actualizarFechaHora();
   setInterval(actualizarFechaHora, 1000);
-  // Solicitar permisos de geolocalización
-  await authStore.requestLocationPermissions();
   // Verificar y cargar clientes pendientes
   await verificarYcargarClientes();
   // Obtener el peso total de todas las entregas
