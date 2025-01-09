@@ -4,13 +4,14 @@ import { TextToSpeech } from '@capacitor-community/text-to-speech';
 import axios from 'axios';
 import { defineStore } from 'pinia';
 const { showAlert } = useLayout();
+
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         user: null,
         groups: [],
         token: null,
         error: null,
-        location: null,
+        location: JSON.parse(localStorage.getItem('location')) || null,
         actions: [], // Para almacenar las acciones del usuario
         isMuted: JSON.parse(localStorage.getItem('isMuted')) || false // Estado de mute
     }),
@@ -18,14 +19,12 @@ export const useAuthStore = defineStore('auth', {
     actions: {
         async login(username, password) {
             try {
-                // Solicitar autenticación en la API
                 const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/auth/', {
                     username,
                     password,
                     country: 'sv'
                 });
 
-                // Verificar respuesta
                 if (!response.data.user?.user_data || !response.data.user?.groups || !response.data.token?.access_token) {
                     throw new Error('Credenciales incorrectas o falta de información en la respuesta.');
                 }
@@ -35,28 +34,23 @@ export const useAuthStore = defineStore('auth', {
                 this.token = response.data.token.access_token;
                 this.error = null;
 
-                // Verificar si el usuario tiene los permisos necesarios
                 const hasRequiredGroup = this.groups.includes('YesEntregas-Entregador');
                 if (!hasRequiredGroup) {
-                    // Mostrar mensaje de error
                     showAlert({
                         title: 'Acceso Denegado',
                         text: 'No tienes los permisos necesarios para acceder a este sistema.',
                         icon: 'error',
                         confirmButtonText: 'Entendido'
                     });
-                    return; // Prevenir acceso al sistema
+                    return;
                 }
 
-                // Guardar en localStorage
                 localStorage.setItem('user', JSON.stringify(this.user));
                 localStorage.setItem('groups', JSON.stringify(this.groups));
                 localStorage.setItem('token', this.token);
 
-                // Configurar token en Axios
                 this.setAxiosToken(this.token);
 
-                // Alerta de inicio de sesión exitoso
                 showAlert({
                     title: '¡Inicio de sesión exitoso!',
                     text: `Bienvenido, ${this.user?.Username || 'Usuario'}`,
@@ -65,19 +59,26 @@ export const useAuthStore = defineStore('auth', {
                     showConfirmButton: false
                 });
 
-                // Redirigir al dashboard
-                router.push({ name: 'dashboard' });
+                // Solicitar permisos de geolocalización después del inicio de sesión
+                await this.startLocationWatch();
 
                 // Registrar acción de inicio de sesión
                 await this.registrarAccion('Inicio de sesión');
 
-                // Solicitar permisos de geolocalización después del inicio de sesión
-                this.requestLocationPermissions();
+                // Redirigir al dashboard
+                router.push({ name: 'dashboard' });
+
+                // Iniciar registro de ubicación cada minuto
+                setInterval(async () => {
+                    await this.registrarAccion('Cambio de ubicación');
+                }, 60000); // 60000 ms = 1 minuto
+
+                // Iniciar la observación del localStorage
+                this.startWatchingLocalStorage();
 
             } catch (err) {
                 console.error('Error al autenticar:', err);
 
-                // Verificar si el error es por credenciales incorrectas
                 if (err.response && err.response.status === 401) {
                     this.error = 'Usuario o contraseña incorrectos.';
                 } else if (err.response && err.response.status === 500) {
@@ -99,96 +100,78 @@ export const useAuthStore = defineStore('auth', {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         },
 
-        async requestLocationPermissions() {
-            try {
-                if ('geolocation' in navigator) {
-                    console.log('Solicitando permisos de geolocalización...');
-
-                    const successCallback = async (position) => {
+        async startLocationWatch() {
+            if ("geolocation" in navigator) {
+                return new Promise((resolve, reject) => {
+                    const successCallback = (position) => {
                         const newLocation = {
                             latitude: position.coords.latitude,
-                            longitude: position.coords.longitude
+                            longitude: position.coords.longitude,
                         };
-
-                        // Si la ubicación ha cambiado, enviar un log
-                        if (!this.location || 
-                            this.location.latitude !== newLocation.latitude || 
-                            this.location.longitude !== newLocation.longitude) {
+                        if (
+                            !this.location ||
+                            this.location.latitude !== newLocation.latitude ||
+                            this.location.longitude !== newLocation.longitude
+                        ) {
                             this.location = newLocation;
-                            localStorage.setItem('location', JSON.stringify(this.location));
-                            console.log('Ubicación actualizada:', this.location);
-
-                            // Registrar acción de cambio de ubicación
-                            await this.registrarAccion('Cambio de ubicación');
+                            localStorage.setItem("location", JSON.stringify(newLocation));
+                            console.log("Ubicación actualizada:", newLocation);
                         }
+                        resolve();
                     };
 
                     const errorCallback = (error) => {
-                        console.error('Error al obtener la ubicación:', error.message);
+                        console.error("Error al obtener la ubicación:", error.message);
+                        reject(error);
                     };
 
                     const options = {
                         enableHighAccuracy: true,
                         timeout: 5000,
-                        maximumAge: 0
+                        maximumAge: 0,
                     };
 
-                    // Usar watchPosition para actualizar la ubicación continuamente
-                    navigator.geolocation.watchPosition(successCallback, errorCallback, options);
-                }
-            } catch (error) {
-                console.error('Error al solicitar permisos de ubicación:', error);
-                showAlert({
-                    title: 'Error al solicitar permisos',
-                    text: 'No se pudo acceder a la ubicación. Asegúrate de habilitar los permisos.',
-                    icon: 'error',
-                    confirmButtonText: 'Intentar de nuevo'
+                    navigator.geolocation.watchPosition(
+                        successCallback,
+                        errorCallback,
+                        options
+                    );
                 });
+            } else {
+                console.error("Geolocalización no soportada por el navegador");
+                showAlert({
+                    title: "Error",
+                    text: "Geolocalización no soportada por el navegador",
+                    icon: "error",
+                    confirmButtonText: "Entendido",
+                });
+                return Promise.reject(new Error("Geolocalización no soportada por el navegador"));
             }
         },
 
-        async obtenerYGuardarUbicacion() {
-            return new Promise((resolve) => {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const lat = position.coords.latitude;
-                            const lon = position.coords.longitude;
-                            localStorage.setItem('userLatitude', lat);
-                            localStorage.setItem('userLongitude', lon);
-                            console.log(`Ubicación obtenida y guardada: Latitud ${lat}, Longitud ${lon}`);
-                            resolve({ lat, lon });
-                        },
-                        (error) => {
-                            console.error('Error obteniendo la geolocalización:', error);
-                            showAlert({
-                                title: 'Error',
-                                text: 'No se pudo obtener la ubicación. Asegúrate de que los permisos están habilitados.',
-                                icon: 'error',
-                                confirmButtonText: 'Entendido'
-                            });
-                            // Resolver con valores predeterminados si hay un error
-                            resolve({ lat: 0, lon: 0 });
-                        }
-                    );
-                } else {
-                    console.error('Geolocalización no soportada por el navegador');
-                    showAlert({
-                        title: 'Error',
-                        text: 'Geolocalización no soportada por el navegador',
-                        icon: 'error',
-                        confirmButtonText: 'Entendido'
-                    });
-                    // Resolver con valores predeterminados si la geolocalización no es soportada
-                    resolve({ lat: 0, lon: 0 });
+        // Función para observar cambios en localStorage
+        startWatchingLocalStorage() {
+            let lastClientes = JSON.parse(localStorage.getItem('clientes')) || [];
+
+            setInterval(async () => {
+                const currentClientes = JSON.parse(localStorage.getItem('clientes')) || [];
+                if (JSON.stringify(currentClientes) !== JSON.stringify(lastClientes)) {
+                    await this.handleLocalStorageChange(lastClientes, currentClientes);
+                    lastClientes = currentClientes;
                 }
-            });
+            }, 1000); // Verificar cambios cada segundo
         },
 
-        insertLogWithJson(logData) {
-            const logs = JSON.parse(localStorage.getItem('logs')) || [];
-            logs.push(logData);
-            localStorage.setItem('logs', JSON.stringify(logs));
+        // Función para manejar los cambios en localStorage
+        async handleLocalStorageChange(oldClientes, newClientes) {
+            for (let i = 0; i < newClientes.length; i++) {
+                if (JSON.stringify(oldClientes[i]) !== JSON.stringify(newClientes[i])) {
+                    const { KUNNR, estado, vbeln } = newClientes[i];
+                    if (estado && vbeln) {
+                        await this.registrarEntrega(KUNNR, vbeln, estado);
+                    }
+                }
+            }
         },
 
         loadSession() {
@@ -208,6 +191,9 @@ export const useAuthStore = defineStore('auth', {
 
                     this.setAxiosToken(this.token);
                     console.log('Sesión cargada:', this.user, this.groups, this.location);
+
+                    // Iniciar la observación del localStorage
+                    this.startWatchingLocalStorage();
                 } catch (error) {
                     console.error('Error al cargar la sesión:', error);
                 }
@@ -258,68 +244,87 @@ export const useAuthStore = defineStore('auth', {
             return this.groups.includes(groupName);
         },
 
-        async obtenerUbicacionYEnviarLog(accion, kunnag = null, vbeln = null) {
-            if ('geolocation' in navigator) {
-                navigator.geolocation.getCurrentPosition(async (position) => {
-                    this.location = {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
-                    };
-                    console.log('Ubicación obtenida:', this.location);
+        async obtenerUbicacionYEnviarLog(accion, kunnag = null, vbeln = null, detalles = {}) {
+            console.log(`Iniciando obtenerUbicacionYEnviarLog: ${accion}`); // Añadir log de depuración
 
-                    const logData = {
-                        json_accion: {
-                            'fecha-hora': new Date().toLocaleString('es-ES', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit',
-                            }),
-                            'Accion': accion,
-                            'Username': this.user?.Username || 'No disponible',
-                            'latitud': this.location.latitude.toString(),
-                            'longitud': this.location.longitude.toString(),
-                            'kunnag': kunnag,
-                            'vbeln': vbeln
-                        }
-                    };
+            // Utilizar la ubicación del localStorage
+            const location = JSON.parse(localStorage.getItem('location'));
+            if (!location) {
+                console.error('No se pudo obtener la ubicación del localStorage.');
+                return;
+            }
 
-                    const token = localStorage.getItem('token');
-                    if (token) {
-                        try {
-                            const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/logs/', logData, {
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json'
-                                }
-                            });
-                            if (response.status === 200 || response.status === 201) {
-                                console.log('Log enviado correctamente.');
-                                this.actions.push(logData.json_accion); // Registrar la acción
-                            } else {
-                                console.error('Error al enviar el log:', response);
-                            }
-                        } catch (error) {
-                            console.error('Error al enviar el log:', error);
+            const logData = {
+                json_accion: {
+                    'fecha-hora': new Date().toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                    }),
+                    'Accion': accion,
+                    'Username': this.user?.Username || 'No disponible',
+                    'latitud': location.latitude.toString(),
+                    'longitud': location.longitude.toString(),
+                    'kunnag': kunnag,
+                    'vbeln': vbeln,
+                    ...detalles
+                }
+            };
+
+            console.log('Datos del log:', logData); // Añadir log de depuración
+
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/logs/', logData, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
                         }
+                    });
+                    if (response.status === 200 || response.status === 201) {
+                        console.log('Log enviado correctamente.');
+                        this.actions.push(logData.json_accion);
                     } else {
-                        console.error('Token no encontrado en el almacenamiento local.');
+                        console.error('Error al enviar el log:', response);
                     }
-                }, (error) => {
-                    console.error('Error al obtener la ubicación:', error.message);
-                });
+                } catch (error) {
+                    console.error('Error al enviar el log:', error);
+                }
+            } else {
+                console.error('Token no encontrado en el almacenamiento local.');
             }
         },
 
-        async registrarAccion(accion) {
-            await this.obtenerUbicacionYEnviarLog(accion);
+        async registrarAccion(accion, detalles = {}) {
+            console.log(`Registrando acción: ${accion}`); // Añadir log de depuración
+            await this.obtenerUbicacionYEnviarLog(accion, detalles.kunnag, detalles.vbeln, detalles);
         },
 
-        async registrarEntrega(kunnag, vbeln) {
-            const accion = 'Entrega realizada'; // Nombre de la acción específica
-            await this.obtenerUbicacionYEnviarLog(accion, kunnag, vbeln);
+        async registrarEntrega(kunnag, vbeln, tipoEntrega) {
+            if (!vbeln) {
+                console.warn(`VBELN no disponible para kunnag: ${kunnag}, tipoEntrega: ${tipoEntrega}`);
+                return;
+            }
+            const accion = `Entrega realizada (${tipoEntrega})`;
+            console.log(`Registrando entrega: ${accion}, kunnag: ${kunnag}, vbeln: ${vbeln}`); // Añadir log de depuración
+            await this.registrarAccion(accion, { kunnag, vbeln });
+        },
+
+        async terminarDia() {
+            console.log('Registrando acción: Terminar día'); // Añadir log de depuración
+            await this.registrarAccion('Terminar día');
+            showAlert({
+                title: 'Día terminado',
+                text: 'Has terminado el día correctamente.',
+                icon: 'success',
+                confirmButtonText: 'Entendido'
+            }).then(() => {
+                router.push({ name: 'dashboard' });
+            });
         },
 
         toggleMute() {
@@ -340,12 +345,12 @@ export const useAuthStore = defineStore('auth', {
 
         async hablarMensaje(mensaje) {
             if (this.isMuted) {
-                return; // Si está en mute, no hacer nada
+                return;
             }
 
             if ('speechSynthesis' in window) {
                 const utterance = new SpeechSynthesisUtterance(mensaje);
-                utterance.lang = 'es-ES'; // Configurar el idioma
+                utterance.lang = 'es-ES';
                 window.speechSynthesis.speak(utterance);
             } else {
                 try {
@@ -361,5 +366,5 @@ export const useAuthStore = defineStore('auth', {
                 }
             }
         }
-    }
+    },
 });

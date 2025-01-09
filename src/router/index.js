@@ -1,3 +1,4 @@
+// router.js
 import { useAuthStore } from '@/api-plugins/authStores';
 import AppLayout from '@/layout/AppLayout.vue';
 import { createRouter, createWebHistory } from 'vue-router';

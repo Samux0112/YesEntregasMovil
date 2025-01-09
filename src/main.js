@@ -5,13 +5,14 @@ import router from './router';
 
 // PrimeVue y estilos
 import '@/api-plugins/limpiarLocal'; // Importa tu store de autenticación
+import '@/assets/styles.scss';
+import '@/assets/tailwind.css';
 import Aura from '@primevue/themes/aura';
+import * as Highcharts from "highcharts";
+import * as HighchartsVue from "highcharts-vue";
 import PrimeVue from 'primevue/config';
 import ConfirmationService from 'primevue/confirmationservice';
 import ToastService from 'primevue/toastservice';
-
-import '@/assets/styles.scss';
-import '@/assets/tailwind.css';
 
 // Importar Highcharts y HighchartsVue
 
@@ -32,5 +33,7 @@ app.use(PrimeVue, {
 });
 app.use(ToastService);
 app.use(ConfirmationService);
+app.use(Highcharts);
+app.use(HighchartsVue);
 
 app.mount('#app');

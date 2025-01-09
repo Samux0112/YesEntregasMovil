@@ -1,6 +1,6 @@
 <script setup>
 import { useLayout } from "@/layout/composables/layout"; // Importa la composición del layout
-import Highcharts from "highcharts";
+//import Highcharts from "highcharts";
 import { onMounted, ref, watch } from "vue";
 const { getPrimary, isDarkTheme } = useLayout();
 

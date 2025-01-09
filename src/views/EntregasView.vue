@@ -125,7 +125,6 @@ const handleEntregar = () => {
   }
 };
 
-// Funciones
 const handleDialogConfirm = async () => {
   showDialog.value = false;
   let estadoCliente = "pendiente";
@@ -136,8 +135,6 @@ const handleDialogConfirm = async () => {
       posnr: item.POSNR,
       entregado: item.entregado,
     }));
-
-    console.log('Datos enviados para "Entregado":', entregadoData);
 
     try {
       await axios.post(
@@ -151,7 +148,7 @@ const handleDialogConfirm = async () => {
         }
       );
       estadoCliente = "entregado";
-      actualizarClientes(estadoCliente);
+      await actualizarClientes(estadoCliente); // Llamar a actualizarClientes
       showAlert(
         "Entregado",
         "Todos los productos han sido entregados.",
@@ -162,13 +159,6 @@ const handleDialogConfirm = async () => {
     } catch (error) {
       console.error("Error al actualizar la entrega:", error);
       showAlert("Error", "Hubo un error al actualizar la entrega.", "error");
-    }
-
-    // Llamar a registrarEntrega en el authStore con kunnag y vbeln
-    if (arktxList.value.length > 0) {
-      const kunnag = cliente.value.KUNNR;
-      const vbeln = arktxList.value[0].VBELN;
-      await authStore.registrarEntrega(kunnag, vbeln);
     }
   } else if (
     selectedOption.value === "parcial" ||
@@ -186,11 +176,6 @@ const handleDialogConfirm = async () => {
       motivo: Number(selectedMotivo.value),
       comentario: comment.value,
     };
-
-    console.log(
-      'Datos enviados para "Parcial" o "No Entregado":',
-      complementoData
-    );
 
     try {
       await axios.post(
@@ -211,8 +196,6 @@ const handleDialogConfirm = async () => {
           entregado: 0, // Enviar 0 cuando no entregado
         }));
 
-        console.log('Datos enviados para "No Entregado":', noEntregadoData);
-
         await axios.post(
           "https://calidad-yesentregas-api.yes.com.sv/entregas/update/",
           noEntregadoData,
@@ -225,7 +208,7 @@ const handleDialogConfirm = async () => {
         );
 
         estadoCliente = "no_entregado";
-        actualizarClientes(estadoCliente);
+        await actualizarClientes(estadoCliente); // Llamar a actualizarClientes
         showAlert("Guardado", "Los datos han sido guardados.", "success").then(
           () => {
             router.push("/clientes"); // Redirige al menú de clientes
@@ -233,7 +216,7 @@ const handleDialogConfirm = async () => {
         );
       } else {
         estadoCliente = "parcial";
-        actualizarClientes(estadoCliente);
+        await actualizarClientes(estadoCliente); // Llamar a actualizarClientes
         showAlert("Guardado", "Los datos han sido guardados.", "success").then(
           () => {
             arktxList.value.forEach((item) => (item.editable = true)); // Activar edición de productos
@@ -248,30 +231,32 @@ const handleDialogConfirm = async () => {
         "error"
       );
     }
-
-    // Llamar a registrarEntrega en el authStore con kunnag y vbeln
-    if (arktxList.value.length > 0) {
-      const kunnag = cliente.value.KUNNR;
-      const vbeln = arktxList.value[0].VBELN;
-      await authStore.registrarEntrega(kunnag, vbeln);
-    }
   }
 };
 
-// Actualizar el estado del cliente en localStorage
-const actualizarClientes = (estado) => {
+const actualizarClientes = async (estado) => {
   let clientes = JSON.parse(localStorage.getItem("clientes")) || [];
   let clienteIndex = clientes.findIndex((c) => c.KUNNR === cliente.value.KUNNR);
-  if (clienteIndex !== -1) {
+  if (
+    clienteIndex !== -1 &&
+    (estado === "entregado" ||
+      estado === "parcial" ||
+      estado === "no_entregado")
+  ) {
     clientes[clienteIndex].estado = estado; // Actualizar el estado del cliente
     localStorage.setItem("clientes", JSON.stringify(clientes));
+
+    // Registrar la entrega en el log
+    await authStore.registrarEntrega(
+      cliente.value.KUNNR,
+      arktxList.value[0]?.VBELN,
+      estado
+    );
   }
 };
 
 // Manejar la confirmación de productos entregados
-// Manejar la confirmación de productos entregados
 const handleConfirmAll = async () => {
-  // Validar todas las entradas antes de proceder
   const invalidItems = arktxList.value.filter((item) => {
     const entregado = parseInt(item.entregado);
     return isNaN(entregado) || entregado > item.FKIMG || entregado < 0;
@@ -283,7 +268,7 @@ const handleConfirmAll = async () => {
       "Hay cantidades ingresadas que son inválidas. Por favor corrígelas antes de confirmar.",
       "error"
     );
-    return; // No proceder si hay entradas inválidas
+    return;
   }
 
   const entregadoData = arktxList.value.map((item) => ({
@@ -291,8 +276,6 @@ const handleConfirmAll = async () => {
     posnr: item.POSNR,
     entregado: item.entregado,
   }));
-
-  console.log("Datos enviados para confirmación:", entregadoData);
 
   try {
     await axios.post(

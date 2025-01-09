@@ -9,7 +9,7 @@ import { useRouter } from "vue-router";
 
 //este hay que descomentariar si se compila en produccion o en este caso apk
 import { useLayout } from "@/layout/composables/layout";
-import Highcharts from "highcharts";
+//import Highcharts from "highcharts";
 const { showAlert } = useLayout();
 const { getPrimary, isDarkTheme } = useLayout();
 const router = useRouter();
@@ -646,8 +646,12 @@ const updateChartOptions = () => {
   }
 };
 
-const terminarDia = () => {
+const terminarDia = async () => {
+  // Marcar el día como terminado en localStorage
   localStorage.setItem("dayFinished", "true");
+  // Registrar la acción de terminar el día
+  await authStore.registrarAccion("Terminar día");
+  // Mostrar alerta de finalización y redirigir al dashboard
   showAlert(
     "Haz finalizado tus entregas",
     "Redirigiendo a la pantalla principal",
