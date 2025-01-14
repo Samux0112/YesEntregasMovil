@@ -4,6 +4,7 @@ import { useLayout } from "@/layout/composables/layout";
 import axios from "axios";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+
 const { showAlert } = useLayout();
 // Variables y referencias
 const route = useRoute();
@@ -130,7 +131,6 @@ const handleOption = async (option) => {
   }
 };
 
-// Función para manejar la confirmación del diálogo (renombrada y modificada)
 const handleOptionConfirm = async () => {
   showDialog.value = false;
   let estadoCliente = "pendiente";
@@ -143,24 +143,18 @@ const handleOptionConfirm = async () => {
     }));
 
     try {
-      await axios.post(
-        "https://calidad-yesentregas-api.yes.com.sv/entregas/update/",
+      await enviarDatosAAPI(
         entregadoData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authStore.token}`,
-          },
-        }
+        "https://calidad-yesentregas-api.yes.com.sv/entregas/update/"
       );
       estadoCliente = "entregado";
-      await actualizarClientes(estadoCliente); // Llamar a actualizarClientes
+      await actualizarClientes(estadoCliente);
       showAlert(
         "Entregado",
         "Todos los productos han sido entregados.",
         "success"
       ).then(() => {
-        router.push("/clientes"); // Redirige al menú de clientes
+        router.push("/clientes");
       });
     } catch (error) {
       console.error("Error al actualizar la entrega:", error);
@@ -184,15 +178,9 @@ const handleOptionConfirm = async () => {
     };
 
     try {
-      await axios.post(
-        "https://calidad-yesentregas-api.yes.com.sv/entregas/complementarios/update/",
+      await enviarDatosAAPI(
         complementoData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authStore.token}`,
-          },
-        }
+        "https://calidad-yesentregas-api.yes.com.sv/entregas/complementarios/update/"
       );
 
       if (selectedOption.value === "no_entregado") {
@@ -202,30 +190,24 @@ const handleOptionConfirm = async () => {
           entregado: 0, // Enviar 0 cuando no entregado
         }));
 
-        await axios.post(
-          "https://calidad-yesentregas-api.yes.com.sv/entregas/update/",
+        await enviarDatosAAPI(
           noEntregadoData,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${authStore.token}`,
-            },
-          }
+          "https://calidad-yesentregas-api.yes.com.sv/entregas/update/"
         );
 
         estadoCliente = "no_entregado";
-        await actualizarClientes(estadoCliente); // Llamar a actualizarClientes
+        await actualizarClientes(estadoCliente);
         showAlert("Guardado", "Los datos han sido guardados.", "success").then(
           () => {
-            router.push("/clientes"); // Redirige al menú de clientes
+            router.push("/clientes");
           }
         );
       } else {
         estadoCliente = "parcial";
-        await actualizarClientes(estadoCliente); // Llamar a actualizarClientes
+        await actualizarClientes(estadoCliente);
         showAlert("Guardado", "Los datos han sido guardados.", "success").then(
           () => {
-            arktxList.value.forEach((item) => (item.editable = true)); // Activar edición de productos
+            arktxList.value.forEach((item) => (item.editable = true));
           }
         );
       }
@@ -239,7 +221,6 @@ const handleOptionConfirm = async () => {
     }
   }
 };
-
 // Función para actualizar el estado de los clientes
 const actualizarClientes = async (estado) => {
   let clientes = JSON.parse(localStorage.getItem("clientes")) || [];
@@ -285,26 +266,61 @@ const handleConfirmAll = async () => {
   }));
 
   try {
-    await axios.post(
-      "https://calidad-yesentregas-api.yes.com.sv/entregas/update/",
+    await enviarDatosAAPI(
       entregadoData,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authStore.token}`,
-        },
-      }
+      "https://calidad-yesentregas-api.yes.com.sv/entregas/update/"
     );
     showAlert(
       "Confirmado",
       "Todos los productos han sido confirmados.",
       "success"
     ).then(() => {
-      router.push("/clientes"); // Redirige al menú de clientes
+      router.push("/clientes");
     });
   } catch (error) {
     console.error("Error al confirmar la entrega:", error);
     showAlert("Error", "Hubo un error al confirmar la entrega.", "error");
+  }
+};
+
+const enviarDatosAAPI = async (data, url) => {
+  try {
+    await axios.post(url, data, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authStore.token}`,
+      },
+    });
+  } catch (error) {
+    if (!navigator.onLine) {
+      guardarDatosLocalmente(data, url);
+      showAlert(
+        "Sin conexión",
+        "No hay conexión a Internet. Los datos se guardaron localmente y se sincronizarán cuando la conexión vuelva.",
+        "warning"
+      );
+    } else {
+      throw error;
+    }
+  }
+};
+
+const sincronizarDatosPendientes = async () => {
+  const pendientes = JSON.parse(localStorage.getItem("pendientes")) || [];
+  if (pendientes.length > 0 && navigator.onLine) {
+    for (const { data, url } of pendientes) {
+      try {
+        await axios.post(url, data, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authStore.token}`,
+          },
+        });
+      } catch (error) {
+        console.error("Error al sincronizar datos pendientes:", error);
+      }
+    }
+    localStorage.removeItem("pendientes");
   }
 };
 
@@ -548,6 +564,7 @@ onMounted(() => {
   cargarProductosDesdeLocalStorage();
   startLocationWatch(); // Iniciar el monitoreo de la ubicación
 });
+window.addEventListener("online", sincronizarDatosPendientes);
 </script>
 <template>
   <div>

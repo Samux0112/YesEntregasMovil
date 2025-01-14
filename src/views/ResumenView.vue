@@ -1,9 +1,9 @@
 
 <script>
 import { useLayout } from "@/layout/composables/layout";
+import Highcharts from "highcharts";
 import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-
 export default {
   setup() {
     const { getPrimary, isDarkTheme, showAlert } = useLayout();
