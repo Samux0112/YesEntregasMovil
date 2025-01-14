@@ -4,7 +4,6 @@ import { useLayout } from "@/layout/composables/layout";
 import axios from "axios";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-
 const { showAlert } = useLayout();
 // Variables y referencias
 const route = useRoute();
@@ -158,7 +157,10 @@ const handleOptionConfirm = async () => {
       });
     } catch (error) {
       console.error("Error al actualizar la entrega:", error);
-      showAlert("Error", "Hubo un error al actualizar la entrega.", "error");
+      guardarDatosLocalmente(entregadoData, "entregasPendientes");
+      estadoCliente = "entregado";
+      await actualizarClientes(estadoCliente);
+      router.push("/clientes");
     }
   } else if (
     selectedOption.value === "parcial" ||
@@ -213,14 +215,26 @@ const handleOptionConfirm = async () => {
       }
     } catch (error) {
       console.error("Error al actualizar el complemento:", error);
-      showAlert(
-        "Error",
-        "Hubo un error al actualizar el complemento.",
-        "error"
-      );
+      guardarDatosLocalmente(complementoData, "complementoPendiente");
+      if (selectedOption.value === "no_entregado") {
+        const noEntregadoData = arktxList.value.map((item) => ({
+          vbeln: item.VBELN,
+          posnr: item.POSNR,
+          entregado: 0, // Enviar 0 cuando no entregado
+        }));
+        guardarDatosLocalmente(noEntregadoData, "noEntregadoPendiente");
+        estadoCliente = "no_entregado";
+        await actualizarClientes(estadoCliente);
+        router.push("/clientes");
+      } else {
+        estadoCliente = "parcial";
+        await actualizarClientes(estadoCliente);
+        showDialog.value = false;
+      }
     }
   }
 };
+
 // Función para actualizar el estado de los clientes
 const actualizarClientes = async (estado) => {
   let clientes = JSON.parse(localStorage.getItem("clientes")) || [];
@@ -279,7 +293,8 @@ const handleConfirmAll = async () => {
     });
   } catch (error) {
     console.error("Error al confirmar la entrega:", error);
-    showAlert("Error", "Hubo un error al confirmar la entrega.", "error");
+    guardarDatosLocalmente(entregadoData, "entregasPendientes");
+    router.push("/clientes");
   }
 };
 
@@ -305,22 +320,81 @@ const enviarDatosAAPI = async (data, url) => {
   }
 };
 
+const guardarDatosLocalmente = (data, tipo) => {
+  const pendientes = JSON.parse(localStorage.getItem("pendientes")) || {};
+  if (!pendientes[tipo]) {
+    pendientes[tipo] = [];
+  }
+  pendientes[tipo].push(data);
+  localStorage.setItem("pendientes", JSON.stringify(pendientes));
+};
+
 const sincronizarDatosPendientes = async () => {
-  const pendientes = JSON.parse(localStorage.getItem("pendientes")) || [];
-  if (pendientes.length > 0 && navigator.onLine) {
-    for (const { data, url } of pendientes) {
-      try {
-        await axios.post(url, data, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authStore.token}`,
-          },
-        });
-      } catch (error) {
-        console.error("Error al sincronizar datos pendientes:", error);
+  if (navigator.onLine) {
+    const pendientes = JSON.parse(localStorage.getItem("pendientes")) || {};
+
+    try {
+      if (
+        pendientes.entregasPendientes &&
+        pendientes.entregasPendientes.length > 0
+      ) {
+        await axios.post(
+          "https://calidad-yesentregas-api.yes.com.sv/entregas/update/",
+          pendientes.entregasPendientes,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authStore.token}`,
+            },
+          }
+        );
+        delete pendientes.entregasPendientes;
       }
+
+      if (
+        pendientes.complementoPendiente &&
+        pendientes.complementoPendiente.length > 0
+      ) {
+        await axios.post(
+          "https://calidad-yesentregas-api.yes.com.sv/entregas/complementarios/update/",
+          pendientes.complementoPendiente,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authStore.token}`,
+            },
+          }
+        );
+        delete pendientes.complementoPendiente;
+      }
+
+      if (
+        pendientes.noEntregadoPendiente &&
+        pendientes.noEntregadoPendiente.length > 0
+      ) {
+        await axios.post(
+          "https://calidad-yesentregas-api.yes.com.sv/entregas/update/",
+          pendientes.noEntregadoPendiente,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authStore.token}`,
+            },
+          }
+        );
+        delete pendientes.noEntregadoPendiente;
+      }
+
+      localStorage.setItem("pendientes", JSON.stringify(pendientes));
+      showAlert(
+        "Sincronización",
+        "Los datos se han sincronizado correctamente.",
+        "success"
+      );
+    } catch (error) {
+      console.error("Error al sincronizar los datos:", error);
+      showAlert("Error", "Hubo un problema al sincronizar los datos.", "error");
     }
-    localStorage.removeItem("pendientes");
   }
 };
 
@@ -441,6 +515,8 @@ const cargarProductosDesdeAPI = async () => {
         );
         console.log("Productos guardados en localStorage:", arktxList.value);
 
+        //
+
         // Llamar a obtenerJabasYPallets con el VBELN de la primera entrega
         obtenerJabasYPallets(entregasCliente[0].VBELN);
 
@@ -544,6 +620,7 @@ const startLocationWatch = () => {
     });
   }
 };
+
 // Añadir propiedad searchQuery
 const searchQuery = ref("");
 
@@ -553,17 +630,21 @@ const filteredArktxList = computed(() => {
     item.ARKTX.toLowerCase().includes(searchQuery.value.toLowerCase())
   );
 });
+
 const rowClass = (data) => {
   return {
     "edited-row": data.edited,
   };
 };
+
 onMounted(() => {
   cargarCliente();
   cargarProductosDesdeAPI();
   cargarProductosDesdeLocalStorage();
   startLocationWatch(); // Iniciar el monitoreo de la ubicación
+  sincronizarDatosPendientes(); // Sincronizar datos pendientes al montar
 });
+
 window.addEventListener("online", sincronizarDatosPendientes);
 </script>
 <template>
