@@ -75,7 +75,7 @@ const calcularDistancia = (lat1, lon1, lat2, lon2) => {
   const φ1 = (lat1 * Math.PI) / 180; // φ, λ en radianes
   const φ2 = (lat2 * Math.PI) / 180;
   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+  const Δλ = ((lon1 - lon2) * Math.PI) / 180;
 
   const a =
     Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
@@ -118,14 +118,20 @@ const verificarDistancia = () => {
   return true; // Permitir la entrega
 };
 
-// Función para manejar la entrega
-const handleEntregar = () => {
-  if (verificarDistancia()) {
+// Función para manejar la opción seleccionada (nueva función)
+const handleOption = async (option) => {
+  selectedOption.value = option;
+
+  if (option === "entregado") {
+    await handleOptionConfirm();
+  } else {
+    await obtenerMotivos();
     showDialog.value = true;
   }
 };
 
-const handleDialogConfirm = async () => {
+// Función para manejar la confirmación del diálogo (renombrada y modificada)
+const handleOptionConfirm = async () => {
   showDialog.value = false;
   let estadoCliente = "pendiente";
 
@@ -234,6 +240,7 @@ const handleDialogConfirm = async () => {
   }
 };
 
+// Función para actualizar el estado de los clientes
 const actualizarClientes = async (estado) => {
   let clientes = JSON.parse(localStorage.getItem("clientes")) || [];
   let clienteIndex = clientes.findIndex((c) => c.KUNNR === cliente.value.KUNNR);
@@ -589,14 +596,22 @@ onMounted(() => {
               </div>
             </div>
           </div>
-          <div class="flex">
-            <div>
-              <Button
-                label="Entregar"
-                icon="pi pi-check"
-                @click="handleEntregar"
-              />
-            </div>
+          <div class="flex mt-4">
+            <Button
+              label="Entregado"
+              class="p-button-success"
+              @click="handleOption('entregado')"
+            />
+            <Button
+              label="Parcial"
+              class="p-button-warning ml-2"
+              @click="handleOption('parcial')"
+            />
+            <Button
+              label="No Entregado"
+              class="p-button-danger ml-2"
+              @click="handleOption('no_entregado')"
+            />
             <div class="ml-2">
               <InputText
                 v-model="searchQuery"
@@ -657,23 +672,15 @@ onMounted(() => {
     <div v-else>
       <p>Cliente no encontrado.</p>
     </div>
-    <!-- Dialog Modal -->
+
+    <!-- Dialog Modal for Partial and No Entregado -->
     <Dialog
-      header="Seleccionar Opción"
+      header="Seleccionar Motivo"
       v-model:visible="showDialog"
       :modal="true"
       :closable="false"
     >
       <Dropdown
-        v-model="selectedOption"
-        :options="options"
-        option-label="label"
-        option-value="value"
-        placeholder="Seleccione una opción"
-        class="w-full mb-3"
-      />
-      <Dropdown
-        v-if="selectedOption === 'parcial' || selectedOption === 'no_entregado'"
         v-model="selectedMotivo"
         :options="motivos"
         option-label="label"
@@ -682,10 +689,7 @@ onMounted(() => {
         class="w-full mb-3"
       />
       <InputText
-        v-if="
-          selectedMotivo &&
-          (selectedOption === 'parcial' || selectedOption === 'no_entregado')
-        "
+        v-if="selectedMotivo"
         v-model="comment"
         placeholder="Ingrese los comentarios aquí..."
         rows="3"
@@ -702,7 +706,7 @@ onMounted(() => {
           label="Aceptar"
           icon="pi pi-check"
           class="p-button-text"
-          @click="handleDialogConfirm"
+          @click="handleOptionConfirm"
         />
       </div>
     </Dialog>

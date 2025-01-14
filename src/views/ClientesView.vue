@@ -515,10 +515,8 @@ const anunciarPantallaClientes = async () => {
   }
 };
 
-const ordenarPorNombre = ref(false);
-const ordenarPorDistancia = ref(false);
-const ordenarPor = ref("");
-watch([searchTerm, estadoFiltro, ordenarPor], () => {
+const ordenarPor = ref("distancia"); // Inicializa con el valor "distancia"
+watch([searchTerm, estadoFiltro], () => {
   clientesFiltrados.value = clientes.value
     .filter((cliente) => {
       const nombreCoincide =
@@ -534,15 +532,7 @@ watch([searchTerm, estadoFiltro, ordenarPor], () => {
           : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
       return nombreCoincide && estadoCoincide;
     })
-    .sort((a, b) => {
-      if (ordenarPor.value === "nombre") {
-        return a.NAME1.localeCompare(b.NAME1);
-      } else if (ordenarPor.value === "distancia") {
-        return a.distancia - b.distancia;
-      } else {
-        return 0; // Mantener el orden original
-      }
-    });
+    .sort((a, b) => a.distancia - b.distancia); // Ordena siempre por distancia
 });
 
 // para el grafico
@@ -774,23 +764,17 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
             </div>
             <!-- RadioButtons para ordenar -->
             <div class="mt-1">
-              <RadioButton
-                id="checkOption1"
-                name="ordenar"
-                v-model="ordenarPor"
-                value="nombre"
-              />
-              <label for="checkOption1" class="ml-2">Ordenar por nombre</label>
-              <RadioButton
-                id="checkOption2"
-                name="ordenar"
-                v-model="ordenarPor"
-                value="distancia"
-                class="ml-2"
-              />
-              <label for="checkOption2" class="ml-2"
-                >Ordenar por distancia</label
-              >
+              <div @click="ordenarPor = 'distancia'" class="ml-2">
+                <RadioButton
+                  id="checkOption2"
+                  name="ordenar"
+                  v-model="ordenarPor"
+                  value="distancia"
+                />
+                <label for="checkOption2" class="ml-2"
+                  >Ordenar por distancia</label
+                >
+              </div>
             </div>
             <div class="flex justify-end">
               <SelectButton
@@ -813,6 +797,7 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
                 v-for="cliente in slotProps.items"
                 :key="cliente.KUNNR"
                 class="col-span-12 sm:col-span-6 lg:col-span-4 p-2"
+                @click="irAEntregas(cliente)"
               >
                 <div
                   class="p-6 border border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-900 rounded flex flex-col"
@@ -846,13 +831,13 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
                         icon="pi pi-th-large"
                         label="Más"
                         class="flex-auto whitespace-nowrap"
-                        @click="() => mostrarSubmenu(cliente)"
+                        @click.stop="() => mostrarSubmenu(cliente)"
                       />
                       <Button
                         icon="pi pi-briefcase"
                         label="Visitar"
                         class="flex-auto md:flex-initial whitespace-nowrap"
-                        @click="irAEntregas(cliente)"
+                        @click.stop="irAEntregas(cliente)"
                       />
                     </div>
                   </div>
@@ -867,6 +852,7 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
                 <div
                   class="flex flex-col sm:flex-row sm:items-center p-6 gap-4"
                   :style="{ backgroundColor: getEstadoColor(cliente.estado) }"
+                  @click="irAEntregas(cliente)"
                 >
                   <div
                     class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6"
@@ -899,8 +885,8 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
                           class="bg-surface-0 flex items-center gap-2 justify-center py-1 px-2"
                           style="border-radius: 30px"
                         >
-                          <span class="text-surface-900 font-medium text-sm"
-                            >Dirección: {{ cliente.STRAS }}</span
+                          <span class="text-surface-900 font-medium text-sm">
+                            Dirección: {{ cliente.STRAS }}</span
                           >
                           <i class="pi pi-map text-500"></i>
                         </div>
@@ -912,13 +898,13 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
                           icon="pi pi-th-large"
                           label="Más"
                           class="flex-auto md:flex-initial whitespace-nowrap"
-                          @click="() => mostrarSubmenu(cliente)"
+                          @click.stop="() => mostrarSubmenu(cliente)"
                         />
                         <Button
                           icon="pi pi-briefcase"
                           label="Visitar"
                           class="flex-auto md:flex-initial whitespace-nowrap"
-                          @click="irAEntregas(cliente)"
+                          @click.stop="irAEntregas(cliente)"
                         />
                       </div>
                     </div>
