@@ -762,20 +762,6 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
                 >Atendidos: {{ clientesAtendidos }}</span
               >
             </div>
-            <!-- RadioButtons para ordenar -->
-            <div class="mt-1">
-              <div @click="ordenarPor = 'distancia'" class="ml-2">
-                <RadioButton
-                  id="checkOption2"
-                  name="ordenar"
-                  v-model="ordenarPor"
-                  value="distancia"
-                />
-                <label for="checkOption2" class="ml-2"
-                  >Ordenar por distancia</label
-                >
-              </div>
-            </div>
             <div class="flex justify-end">
               <SelectButton
                 v-model="layout"
