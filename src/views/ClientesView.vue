@@ -15,12 +15,14 @@ const { getPrimary, isDarkTheme } = useLayout();
 const router = useRouter();
 const options = ref(["list", "grid"]);
 const layout = ref("grid"); // Inicializa en 'grid'
-const searchTerm = ref("");
 const clientesFiltrados = ref([]);
 const authStore = useAuthStore();
+// Recuperar los valores de los filtros desde localStorage
+const searchTerm = ref(localStorage.getItem("searchTerm") || "");
+const estadoFiltro = ref(localStorage.getItem("estadoFiltro") || "Todos");
+const ordenarPor = ref(localStorage.getItem("ordenarPor") || "");
 const username = computed(() => authStore.user?.Username || "Invitado");
-const clientes = ref([]);
-const estadoFiltro = ref("Pendiente"); // Estado del filtro, inicializado en 'Pendiente'
+const clientes = ref([]); // Estado del filtro, inicializado en 'Pendiente'
 const clientesPendientes = ref(0); // Contador de clientes pendientes
 const clientesTotales = ref(0); // Contador de clientes totales
 const clientesAtendidos = ref(0); // Contador de clientes atendidos
@@ -515,8 +517,7 @@ const anunciarPantallaClientes = async () => {
   }
 };
 
-const ordenarPor = ref("distancia"); // Inicializa con el valor "distancia"
-watch([searchTerm, estadoFiltro], () => {
+const ordenarClientes = () => {
   clientesFiltrados.value = clientes.value
     .filter((cliente) => {
       const nombreCoincide =
@@ -532,7 +533,23 @@ watch([searchTerm, estadoFiltro], () => {
           : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
       return nombreCoincide && estadoCoincide;
     })
-    .sort((a, b) => a.distancia - b.distancia); // Ordena siempre por distancia
+    .sort((a, b) => {
+      if (ordenarPor.value === "nombre") {
+        return a.NAME1.localeCompare(b.NAME1);
+      } else if (ordenarPor.value === "distancia") {
+        return a.distancia - b.distancia;
+      } else {
+        return 0; // Sin filtro
+      }
+    });
+};
+
+// Guardar los valores de los filtros en localStorage
+watch([searchTerm, estadoFiltro, ordenarPor], () => {
+  localStorage.setItem("searchTerm", searchTerm.value);
+  localStorage.setItem("estadoFiltro", estadoFiltro.value);
+  localStorage.setItem("ordenarPor", ordenarPor.value);
+  ordenarClientes();
 });
 
 // para el grafico
@@ -742,6 +759,58 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
           placeholder="Filtrar por estado"
           class="w-full p-2 border rounded mb-4"
         />
+      </div>
+
+      <!-- Radio buttons para ordenar -->
+      <div class="mt-4">
+        <div>
+          <label
+            for="ordenarSinFiltro"
+            class="flex items-center cursor-pointer"
+            @click="ordenarPor = ''"
+          >
+            <RadioButton
+              id="ordenarSinFiltro"
+              name="ordenar"
+              v-model="ordenarPor"
+              value=""
+              class="mr-2"
+            />
+            Sin Filtro
+          </label>
+        </div>
+        <div class="mt-1">
+          <label
+            for="ordenarPorNombre"
+            class="flex items-center cursor-pointer"
+            @click="ordenarPor = 'nombre'"
+          >
+            <RadioButton
+              id="ordenarPorNombre"
+              name="ordenar"
+              v-model="ordenarPor"
+              value="nombre"
+              class="mr-2"
+            />
+            Ordenar por nombre
+          </label>
+        </div>
+        <div class="mt-1">
+          <label
+            for="ordenarPorDistancia"
+            class="flex items-center cursor-pointer"
+            @click="ordenarPor = 'distancia'"
+          >
+            <RadioButton
+              id="ordenarPorDistancia"
+              name="ordenar"
+              v-model="ordenarPor"
+              value="distancia"
+              class="mr-2"
+            />
+            Ordenar por distancia
+          </label>
+        </div>
       </div>
 
       <!-- Mostrar clientes en DataView -->

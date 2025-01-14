@@ -1,87 +1,186 @@
-<script setup>
-import { useLayout } from "@/layout/composables/layout"; // Importa la composición del layout
-//import Highcharts from "highcharts";
-import { onMounted, ref, watch } from "vue";
-const { getPrimary, isDarkTheme } = useLayout();
 
-// Definición inicial de las opciones del gráfico
-const chartOptions = ref({
-  chart: {
-    type: "pie",
-    backgroundColor: null, // Fondo transparente por defecto
-  },
-  title: {
-    text: "Resumen del Día",
-    style: {
-      color: null, // Color de texto dinámico
-    },
-  },
-  plotOptions: {
-    pie: {
-      innerSize: "50%", // Convertir a doughnut
-      depth: 45,
-      dataLabels: {
-        enabled: true,
-        format: "{point.name}: {point.percentage:.1f}% ({point.y}) ", // Mostrar nombre y porcentaje
+<script>
+import { useLayout } from "@/layout/composables/layout";
+import { onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
+
+export default {
+  setup() {
+    const { getPrimary, isDarkTheme, showAlert } = useLayout();
+    const router = useRouter();
+
+    const chartOptions = ref({
+      chart: {
+        type: "pie",
+        backgroundColor: null,
+      },
+      title: {
+        text: "Resumen del Día",
         style: {
-          color: null, // Color de texto dinámico
-          textOutline: "none",
+          color: null,
         },
       },
-    },
+      plotOptions: {
+        pie: {
+          innerSize: "50%",
+          depth: 45,
+          dataLabels: {
+            enabled: true,
+            format: "{point.name}: {point.percentage:.1f}% ({point.y}) ",
+            style: {
+              color: null,
+              textOutline: "none",
+            },
+          },
+        },
+      },
+      series: [
+        {
+          name: "Clientes",
+          colorByPoint: true,
+          data: [],
+        },
+      ],
+    });
+
+    const updateChartOptions = () => {
+      const isDark = isDarkTheme.value;
+      const textColor = isDark ? "#ffffff" : "#000000";
+      const backgroundColor = isDark ? "#09090b" : "#ffffff";
+
+      chartOptions.value.chart.backgroundColor = backgroundColor;
+      chartOptions.value.title.style.color = textColor;
+      chartOptions.value.plotOptions.pie.dataLabels.style.color = textColor;
+
+      const clientesActualizados =
+        JSON.parse(localStorage.getItem("clientes")) || [];
+      const entregados = clientesActualizados.filter(
+        (cliente) => cliente.estado === "entregado"
+      ).length;
+      const parciales = clientesActualizados.filter(
+        (cliente) => cliente.estado === "parcial"
+      ).length;
+      const noEntregados = clientesActualizados.filter(
+        (cliente) => cliente.estado === "no_entregado"
+      ).length;
+
+      chartOptions.value.series[0].data = [
+        { name: "Entregado", y: entregados, color: "#88dc65" },
+        { name: "Parcial", y: parciales, color: "#eeca06" },
+        { name: "No Entregado", y: noEntregados, color: "#ff6961" },
+      ];
+
+      Highcharts.chart("chart-container", chartOptions.value);
+    };
+
+    const goToDashboard = () => {
+      if (router) {
+        router.push({ name: "dashboard" });
+      } else {
+        console.error("Router is undefined");
+      }
+    };
+
+    const sincronizarDatos = async () => {
+      if (navigator.onLine) {
+        const entregasPendientes =
+          JSON.parse(localStorage.getItem("entregasPendientes")) || [];
+        const complementoPendiente =
+          JSON.parse(localStorage.getItem("complementoPendiente")) || [];
+        const noEntregadoPendiente =
+          JSON.parse(localStorage.getItem("noEntregadoPendiente")) || [];
+
+        try {
+          if (entregasPendientes.length > 0) {
+            await axios.post(
+              "https://calidad-yesentregas-api.yes.com.sv/entregas/update/",
+              entregasPendientes,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${authStore.token}`,
+                },
+              }
+            );
+            localStorage.removeItem("entregasPendientes");
+          }
+
+          if (complementoPendiente.length > 0) {
+            await axios.post(
+              "https://calidad-yesentregas-api.yes.com.sv/entregas/complementarios/update/",
+              complementoPendiente,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${authStore.token}`,
+                },
+              }
+            );
+            localStorage.removeItem("complementoPendiente");
+          }
+
+          if (noEntregadoPendiente.length > 0) {
+            await axios.post(
+              "https://calidad-yesentregas-api.yes.com.sv/entregas/update/",
+              noEntregadoPendiente,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${authStore.token}`,
+                },
+              }
+            );
+            localStorage.removeItem("noEntregadoPendiente");
+          }
+
+          showAlert(
+            "Sincronización",
+            "Los datos se han sincronizado correctamente.",
+            "success"
+          );
+        } catch (error) {
+          console.error("Error al sincronizar los datos:", error);
+          showAlert(
+            "Error",
+            "Hubo un problema al sincronizar los datos.",
+            "error"
+          );
+        }
+      }
+    };
+
+    onMounted(() => {
+      updateChartOptions();
+      setInterval(updateChartOptions, 30000);
+      sincronizarDatos();
+      window.addEventListener("online", sincronizarDatos);
+    });
+
+    watch([getPrimary, isDarkTheme], updateChartOptions);
+
+    return {
+      goToDashboard,
+    };
   },
-  series: [
-    {
-      name: "Clientes",
-      colorByPoint: true,
-      data: [],
-    },
-  ],
-});
-
-// Función para actualizar las opciones del gráfico
-const updateChartOptions = () => {
-  const isDark = isDarkTheme.value;
-  const primaryColor = getPrimary.value;
-  const textColor = isDark ? "#ffffff" : "#000000";
-  const backgroundColor = isDark ? "#09090b" : "#ffffff";
-
-  chartOptions.value.chart.backgroundColor = backgroundColor;
-  chartOptions.value.title.style.color = textColor;
-  chartOptions.value.plotOptions.pie.dataLabels.style.color = textColor;
-
-  const clientesActualizados =
-    JSON.parse(localStorage.getItem("clientes")) || [];
-  const totalClientes = clientesActualizados.length;
-  const entregados = clientesActualizados.filter(
-    (cliente) => cliente.estado === "entregado"
-  ).length;
-  const parciales = clientesActualizados.filter(
-    (cliente) => cliente.estado === "parcial"
-  ).length;
-  const noEntregados = clientesActualizados.filter(
-    (cliente) => cliente.estado === "no_entregado"
-  ).length;
-
-  chartOptions.value.series[0].data = [
-    { name: "Entregado", y: entregados, color: "#88dc65" }, // Verde claro
-    { name: "Parcial", y: parciales, color: "#eeca06" }, // Amarillo claro
-    { name: "No Entregado", y: noEntregados, color: "#ff6961" }, // Rojo claro
-  ];
-
-  Highcharts.chart("chart-container", chartOptions.value);
 };
-
-onMounted(() => {
-  updateChartOptions();
-  // Actualizar el gráfico cada 30 segundos (30000 ms)
-  setInterval(updateChartOptions, 30000);
-});
-
-// Observar cambios en el tema para actualizar el gráfico dinámicamente
-watch([getPrimary, isDarkTheme], updateChartOptions);
 </script>
 
 <template>
-  <div id="chart-container"></div>
+  <div>
+    <Button
+      label="Regresar"
+      icon="pi pi-arrow-left"
+      class="p-button-secondary"
+      @click="goToDashboard"
+    />
+    <div id="chart-container"></div>
+  </div>
 </template>
+
+
+<style scoped>
+#chart-container {
+  width: 100%;
+  height: 400px;
+}
+</style>
