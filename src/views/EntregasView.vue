@@ -551,6 +551,15 @@ onMounted(() => {
 </script>
 <template>
   <div>
+    <div class="flex justify-between items-center mb-4">
+      <!-- Botón de Regresar -->
+      <Button
+        label="Regresar"
+        icon="pi pi-arrow-left"
+        class="p-button-secondary"
+        @click="router.go(-1)"
+      />
+    </div>
     <div v-if="cliente">
       <DataTable
         :value="filteredArktxList"
