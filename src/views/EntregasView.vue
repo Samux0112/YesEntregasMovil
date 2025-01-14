@@ -338,15 +338,9 @@ const sincronizarDatosPendientes = async () => {
         pendientes.entregasPendientes &&
         pendientes.entregasPendientes.length > 0
       ) {
-        await axios.post(
-          "https://calidad-yesentregas-api.yes.com.sv/entregas/update/",
-          pendientes.entregasPendientes,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${authStore.token}`,
-            },
-          }
+        await enviarDatosAAPI(
+          pendientes.entregasPendientes.flat(),
+          "https://calidad-yesentregas-api.yes.com.sv/entregas/update/"
         );
         delete pendientes.entregasPendientes;
       }
@@ -355,15 +349,9 @@ const sincronizarDatosPendientes = async () => {
         pendientes.complementoPendiente &&
         pendientes.complementoPendiente.length > 0
       ) {
-        await axios.post(
-          "https://calidad-yesentregas-api.yes.com.sv/entregas/complementarios/update/",
-          pendientes.complementoPendiente,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${authStore.token}`,
-            },
-          }
+        await enviarDatosAAPI(
+          pendientes.complementoPendiente.flat(),
+          "https://calidad-yesentregas-api.yes.com.sv/entregas/complementarios/update/"
         );
         delete pendientes.complementoPendiente;
       }
@@ -372,15 +360,9 @@ const sincronizarDatosPendientes = async () => {
         pendientes.noEntregadoPendiente &&
         pendientes.noEntregadoPendiente.length > 0
       ) {
-        await axios.post(
-          "https://calidad-yesentregas-api.yes.com.sv/entregas/update/",
-          pendientes.noEntregadoPendiente,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${authStore.token}`,
-            },
-          }
+        await enviarDatosAAPI(
+          pendientes.noEntregadoPendiente.flat(),
+          "https://calidad-yesentregas-api.yes.com.sv/entregas/update/"
         );
         delete pendientes.noEntregadoPendiente;
       }
@@ -392,9 +374,10 @@ const sincronizarDatosPendientes = async () => {
         "success"
       );
     } catch (error) {
-      console.error("Error al sincronizar los datos:", error);
-      showAlert("Error", "Hubo un problema al sincronizar los datos.", "error");
+      manejarErrorDeSincronizacion(error);
     }
+  } else {
+    console.warn("Sin conexión a Internet. No se puede sincronizar los datos.");
   }
 };
 
