@@ -6,9 +6,8 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-
-//este hay que descomentariar si se compila en produccion o en este caso apk
 import { useLayout } from "@/layout/composables/layout";
+//este hay que descomentariar si se compila en produccion o en este caso apk
 //import Highcharts from "highcharts";
 const { showAlert } = useLayout();
 const { getPrimary, isDarkTheme } = useLayout();
@@ -22,7 +21,7 @@ const searchTerm = ref(localStorage.getItem("searchTerm") || "");
 const estadoFiltro = ref(localStorage.getItem("estadoFiltro") || "Todos");
 const ordenarPor = ref(localStorage.getItem("ordenarPor") || "");
 const username = computed(() => authStore.user?.Username || "Invitado");
-const clientes = ref([]); // Estado del filtro, inicializado en 'Pendiente'
+const clientes = ref(["Pendiente"]); // Estado del filtro, inicializado en 'Pendiente'
 const clientesPendientes = ref(0); // Contador de clientes pendientes
 const clientesTotales = ref(0); // Contador de clientes totales
 const clientesAtendidos = ref(0); // Contador de clientes atendidos
@@ -30,7 +29,7 @@ const showSubmenu = ref(false);
 const submenuCliente = ref(null);
 const submenuOptions = [
   { label: "Tomar Georreferencia", value: "georreferencia" },
-  { label: "Graficar Ruta", value: "ruta" },
+  { label: "Ir Ahora", value: "ruta" },
   { label: "Formulario de Encuestas", value: "encuesta" },
   { label: "Llamada Telefónica", value: "llamada" },
 ];
@@ -120,21 +119,7 @@ const recalcularDistanciaClientes = () => {
       distancia: distancia.toFixed(2), // Actualizar la distancia
     };
   });
-
-  clientesFiltrados.value = clientes.value.filter((cliente) => {
-    const nombreCoincide =
-      cliente.NAME1.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-      cliente.NAME2.toLowerCase().includes(searchTerm.value.toLowerCase());
-    const estadoCoincide =
-      estadoFiltro.value === "Todos"
-        ? true
-        : estadoFiltro.value === "Atendido"
-        ? ["entregado", "parcial", "no_entregado"].includes(
-            cliente.estado.toLowerCase()
-          )
-        : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
-    return nombreCoincide && estadoCoincide;
-  });
+  ordenarClientes();
 };
 
 const cargarClientes = async () => {
@@ -191,17 +176,7 @@ const cargarClientes = async () => {
         )
       ).length;
 
-      clientesFiltrados.value = clientesActualizados.filter((cliente) => {
-        const estadoCoincide =
-          estadoFiltro.value === "Todos"
-            ? true
-            : estadoFiltro.value === "Atendido"
-            ? ["entregado", "parcial", "no_entregado"].includes(
-                cliente.estado.toLowerCase()
-              )
-            : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
-        return estadoCoincide;
-      });
+      ordenarClientes(); // Ordenar los clientes después de cargarlos
 
       showAlert({
         title: "Clientes cargados",
@@ -242,17 +217,7 @@ const mostrarClientesGuardados = () => {
       )
     ).length;
 
-    clientesFiltrados.value = clientes.value.filter((cliente) => {
-      const estadoCoincide =
-        estadoFiltro.value === "Todos"
-          ? true
-          : estadoFiltro.value === "Atendido"
-          ? ["entregado", "parcial", "no_entregado"].includes(
-              cliente.estado.toLowerCase()
-            )
-          : cliente.estado.toLowerCase() === estadoFiltro.value.toLowerCase();
-      return estadoCoincide;
-    });
+    ordenarClientes(); // Ordenar los clientes guardados
   }
 };
 
@@ -465,7 +430,7 @@ const handleSubmenuClick = async (option) => {
       const urlWaze = `https://www.waze.com/ul?ll=${userLocation.value.latitude},${userLocation.value.longitude}&navigate=yes`;
       const urlMaps = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.value.latitude},${userLocation.value.longitude}&destination=${submenuCliente.value.LATITUD},${submenuCliente.value.LONGITUD}`;
       showAlert({
-        title: "Graficar Ruta",
+        title: "Ir Ahora",
         html: `
                     <button onclick="window.open('${urlWaze}', '_blank')" class="swal2-confirm swal2-styled">Abrir en Waze
                     </button><br>
@@ -731,6 +696,7 @@ onMounted(async () => {
   await verificarYcargarClientes();
   updateUserLocation();
   startLocationWatch();
+  recalcularDistanciaClientes(); // Recalcular distancias al montar el componente
   anunciarPantallaClientes();
   updateChartOptions();
 });
@@ -990,7 +956,7 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
         />
         <Button
           icon="pi pi-map"
-          label="Graficar Ruta"
+          label="Ir Ahora"
           @click="handleSubmenuClick({ value: 'ruta' })"
         />
         <Button

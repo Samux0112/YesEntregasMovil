@@ -529,22 +529,31 @@ const cargarProductosDesdeLocalStorage = () => {
   }
 };
 
-// Función para obtener los motivos desde la API
+//obtener los motivos para entregas parciales y no entregadas
+
 const obtenerMotivos = async () => {
   try {
-    const response = await axios.post(
-      "https://calidad-yesentregas-api.yes.com.sv/motivos/"
-    );
-    console.log("Motivos obtenidos:", response.data);
-    // Asegúrate de que response.data sea un array antes de mapear
-    if (Array.isArray(response.data)) {
-      motivos.value = response.data.map((motivo) => ({
-        label: motivo.descripcion, // Usar 'descripcion' para el label
-        value: motivo.id,
-        id_tipo: motivo.id_tipo, // Agregar id_tipo para filtrado
-      }));
+    if (navigator.onLine) {
+      const response = await axios.post(
+        "https://calidad-yesentregas-api.yes.com.sv/motivos/"
+      );
+      console.log("Motivos obtenidos:", response.data);
+      // Asegúrate de que response.data sea un array antes de mapear
+      if (Array.isArray(response.data)) {
+        motivos.value = response.data.map((motivo) => ({
+          label: motivo.descripcion, // Usar 'descripcion' para el label
+          value: motivo.id,
+          id_tipo: motivo.id_tipo, // Agregar id_tipo para filtrado
+        }));
+        localStorage.setItem("motivos", JSON.stringify(motivos.value));
+      } else {
+        console.error("La respuesta de la API no es un array:", response.data);
+      }
     } else {
-      console.error("La respuesta de la API no es un array:", response.data);
+      const motivosGuardados =
+        JSON.parse(localStorage.getItem("motivos")) || [];
+      motivos.value = motivosGuardados;
+      console.log("Motivos cargados desde localStorage:", motivos.value);
     }
   } catch (error) {
     console.error("Error al obtener los motivos:", error);
@@ -626,6 +635,7 @@ onMounted(() => {
   cargarProductosDesdeLocalStorage();
   startLocationWatch(); // Iniciar el monitoreo de la ubicación
   sincronizarDatosPendientes(); // Sincronizar datos pendientes al montar
+  obtenerMotivos();
 });
 
 window.addEventListener("online", sincronizarDatosPendientes);
