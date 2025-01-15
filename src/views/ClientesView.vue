@@ -1,12 +1,12 @@
 <script setup>
 import { useAuthStore } from "@/api-plugins/authStores";
+import { useLayout } from "@/layout/composables/layout";
 import { TextToSpeech } from "@capacitor-community/text-to-speech";
 import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { useLayout } from "@/layout/composables/layout";
 //este hay que descomentariar si se compila en produccion o en este caso apk
 //import Highcharts from "highcharts";
 const { showAlert } = useLayout();
