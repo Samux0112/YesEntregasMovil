@@ -8,7 +8,7 @@ import Swal from "sweetalert2";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 //este hay que descomentariar si se compila en produccion o en este caso apk
-import Highcharts from "highcharts";
+//import Highcharts from "highcharts";
 const { showAlert } = useLayout();
 const { getPrimary, isDarkTheme } = useLayout();
 const router = useRouter();
@@ -89,7 +89,7 @@ const startLocationWatch = () => {
 
 const calcularDistancia = (lat1, lon1, lat2, lon2) => {
   const R = 6371e3; // Radio de la Tierra en metros
-  const φ1 = (lat1 * Math.PI) / 180; // φ, λ en radianes
+  const φ1 = (lat1 * Math.PI) / 180;
   const φ2 = (lat2 * Math.PI) / 180;
   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
   const Δλ = ((lon2 - lon1) * Math.PI) / 180;
@@ -103,22 +103,33 @@ const calcularDistancia = (lat1, lon1, lat2, lon2) => {
   return distancia / 1000; // Convertir a kilómetros
 };
 
-const recalcularDistanciaClientes = () => {
+const recalcularDistanciaClientes = async () => {
   const userLat = userLocation.value.latitude;
   const userLon = userLocation.value.longitude;
 
-  clientes.value = clientes.value.map((cliente) => {
+  const promises = clientes.value.map(async (cliente) => {
     const distancia = calcularDistancia(
       userLat,
       userLon,
       parseFloat(cliente.LATITUD),
       parseFloat(cliente.LONGITUD)
     );
+    const estimadoLlegada = obtenerEstimadoLlegada(distancia);
+
+    console.log(
+      `Cliente: ${cliente.NAME1} - Distancia: ${distancia.toFixed(
+        2
+      )} km - Tiempo estimado: ${estimadoLlegada}`
+    );
+
     return {
       ...cliente,
-      distancia: distancia.toFixed(2), // Actualizar la distancia
+      distancia: distancia.toFixed(2),
+      estimadoLlegada: estimadoLlegada,
     };
   });
+
+  clientes.value = await Promise.all(promises);
   ordenarClientes();
 };
 
@@ -137,8 +148,14 @@ const cargarClientes = async () => {
       const userLat = userLocation.value.latitude;
       const userLon = userLocation.value.longitude;
 
-      const clientesConEstado = response.data.map((cliente) => {
+      const promises = response.data.map(async (cliente) => {
         const distancia = calcularDistancia(
+          userLat,
+          userLon,
+          parseFloat(cliente.LATITUD),
+          parseFloat(cliente.LONGITUD)
+        );
+        const estimadoLlegada = await obtenerEstimadoLlegada(
           userLat,
           userLon,
           parseFloat(cliente.LATITUD),
@@ -148,8 +165,11 @@ const cargarClientes = async () => {
           ...cliente,
           estado: cliente.estado || "pendiente", // Asignar estado inicial como pendiente si no existe
           distancia: distancia.toFixed(2), // Calcular y agregar la distancia
+          estimadoLlegada: estimadoLlegada, // Añadir tiempo estimado de llegada
         };
       });
+
+      const clientesConEstado = await Promise.all(promises);
 
       const clientesGuardados =
         JSON.parse(localStorage.getItem("clientes")) || [];
@@ -256,7 +276,7 @@ watch(userLocation, () => {
   recalcularDistanciaClientes();
 });
 
-const irAEntregas = (cliente) => {
+const irAEntregas = async (cliente) => {
   if (!cliente.LATITUD || !cliente.LONGITUD) {
     showAlert({
       title: "Ubicación no disponible",
@@ -276,17 +296,16 @@ const irAEntregas = (cliente) => {
     `Calculando distancia entre usuario y cliente: (${userLat}, ${userLon}) y (${clienteLat}, ${clienteLon})`
   );
   const distancia = calcularDistancia(clienteLat, clienteLon, userLat, userLon);
+  console.log(`Distancia calculada: ${distancia} km`);
 
-  if (distancia > 100) {
+  if (distancia > 0.1) {
+    // Convertimos 100 metros a kilómetros
+    console.log("Mostrando advertencia de distancia.");
     showAlert({
       title: "Advertencia",
-      text: "Estás a más de 100 metros del cliente.",
+      text: `Estás a más de 100 metros del cliente.`,
       icon: "warning",
       confirmButtonText: "Entendido",
-    }).then(() => {
-      localStorage.setItem("clienteSeleccionado", JSON.stringify(cliente));
-      const clienteKunnr = String(cliente.KUNNR);
-      router.push({ name: "entregas", params: { id: clienteKunnr } });
     });
   } else {
     localStorage.setItem("clienteSeleccionado", JSON.stringify(cliente));
@@ -680,6 +699,19 @@ const verificarActualizacionesCompletas = async () => {
   }
 };
 
+//calcula la distancia estimada en trafico
+
+const obtenerEstimadoLlegada = (distancia) => {
+  const velocidadPromedio = 50; // Velocidad promedio en km/h
+  const tiempoHoras = distancia / velocidadPromedio;
+  const tiempoMinutos = tiempoHoras * 60;
+
+  const horas = Math.floor(tiempoMinutos / 60);
+  const minutos = Math.floor(tiempoMinutos % 60);
+
+  return `${horas > 0 ? horas + " h " : ""}${minutos} min`;
+};
+
 // Método para obtener el color de fondo según el estado del cliente
 const getEstadoColor = (estado) => {
   switch (estado.toLowerCase()) {
@@ -742,23 +774,7 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
               value=""
               class="mr-2"
             />
-            Sin Filtro
-          </label>
-        </div>
-        <div class="mt-1">
-          <label
-            for="ordenarPorNombre"
-            class="flex items-center cursor-pointer"
-            @click="ordenarPor = 'nombre'"
-          >
-            <RadioButton
-              id="ordenarPorNombre"
-              name="ordenar"
-              v-model="ordenarPor"
-              value="nombre"
-              class="mr-2"
-            />
-            Ordenar por nombre
+            Secuencial
           </label>
         </div>
         <div class="mt-1">
@@ -775,6 +791,22 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
               class="mr-2"
             />
             Ordenar por distancia
+          </label>
+        </div>
+        <div class="mt-1">
+          <label
+            for="ordenarPorNombre"
+            class="flex items-center cursor-pointer"
+            @click="ordenarPor = 'nombre'"
+          >
+            <RadioButton
+              id="ordenarPorNombre"
+              name="ordenar"
+              v-model="ordenarPor"
+              value="nombre"
+              class="mr-2"
+            />
+            Ordenar por nombre
           </label>
         </div>
       </div>
@@ -835,15 +867,22 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
                       <span
                         class="font-medium text-surface-500 dark:text-surface-400 text-sm"
                       >
-                        Dirección: {{ cliente.STRAS }}</span
-                      >
+                        Dirección: {{ cliente.STRAS }}
+                      </span>
                       <br />
                       <span
                         class="font-medium text-surface-500 dark:text-surface-400 text-sm"
                       >
                         Distancia entre el cliente y tú:
-                        {{ cliente.distancia }} km</span
+                        {{ cliente.distancia }} km
+                      </span>
+                      <br />
+                      <span
+                        class="font-medium text-surface-500 dark:text-surface-400 text-sm"
                       >
+                        Tiempo estimado de llegada:
+                        {{ cliente.estimadoLlegada }}
+                      </span>
                     </div>
                   </div>
                   <div class="flex flex-col gap-6 mt-6">
@@ -887,16 +926,22 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
                         </div>
                         <span
                           class="font-medium text-surface-500 dark:text-surface-400 text-sm"
-                        >
-                          {{ cliente.NAME2 }}</span
+                          >{{ cliente.NAME2 }}</span
                         >
                         <br />
                         <span
                           class="font-medium text-surface-500 dark:text-surface-400 text-sm"
                         >
                           Distancia entre el cliente y tú:
-                          {{ cliente.distancia }} km</span
+                          {{ cliente.distancia }} km
+                        </span>
+                        <br />
+                        <span
+                          class="font-medium text-surface-500 dark:text-surface-400 text-sm"
                         >
+                          Tiempo estimado de llegada:
+                          {{ cliente.estimadoLlegada }}
+                        </span>
                       </div>
                       <div
                         class="bg-surface-100 p-1"
@@ -907,8 +952,8 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
                           style="border-radius: 30px"
                         >
                           <span class="text-surface-900 font-medium text-sm">
-                            Dirección: {{ cliente.STRAS }}</span
-                          >
+                            Dirección: {{ cliente.STRAS }}
+                          </span>
                           <i class="pi pi-map text-500"></i>
                         </div>
                       </div>
