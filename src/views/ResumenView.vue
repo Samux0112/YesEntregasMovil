@@ -1,13 +1,16 @@
-
 <script>
+import { useAuthStore } from "@/api-plugins/authStores"; // Asegúrate de importar tu authStore
 import { useLayout } from "@/layout/composables/layout";
-//import Highcharts from "highcharts";
+import axios from "axios"; // Asegúrate de importar axios
+//import Highcharts from "highcharts"; // Asegúrate de tener Highcharts importado
 import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
+
 export default {
   setup() {
     const { getPrimary, isDarkTheme, showAlert } = useLayout();
     const router = useRouter();
+    const authStore = useAuthStore();
 
     const chartOptions = ref({
       chart: {
@@ -63,11 +66,15 @@ export default {
       const noEntregados = clientesActualizados.filter(
         (cliente) => cliente.estado === "no_entregado"
       ).length;
+      const pendientes = clientesActualizados.filter(
+        (cliente) => cliente.estado === "pendiente"
+      ).length;
 
       chartOptions.value.series[0].data = [
         { name: "Entregado", y: entregados, color: "#88dc65" },
         { name: "Parcial", y: parciales, color: "#eeca06" },
         { name: "No Entregado", y: noEntregados, color: "#ff6961" },
+        { name: "Pendientes", y: pendientes, color: "#cccccc" },
       ];
 
       Highcharts.chart("chart-container", chartOptions.value);
@@ -176,7 +183,6 @@ export default {
     <div id="chart-container"></div>
   </div>
 </template>
-
 
 <style scoped>
 #chart-container {

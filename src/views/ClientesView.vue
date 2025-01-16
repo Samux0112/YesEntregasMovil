@@ -278,40 +278,53 @@ watch(userLocation, () => {
 
 const irAEntregas = async (cliente) => {
   if (!cliente.LATITUD || !cliente.LONGITUD) {
-    showAlert({
+    await showAlert({
       title: "Ubicación no disponible",
       text: "El cliente no tiene una ubicación registrada. Puedes tomar la georreferencia desde el botón más y actualizar la información del cliente.",
       icon: "info",
       confirmButtonText: "Entendido",
     });
+    // Navegar a la pantalla de entregas
+    localStorage.setItem("clienteSeleccionado", JSON.stringify(cliente));
+    router.push({ name: "entregas", params: { id: String(cliente.KUNNR) } });
     return;
   }
 
-  updateUserLocation();
+  await updateUserLocation(); // Asegúrate de que la ubicación del usuario se ha actualizado
+
+  // Calcular la distancia entre el usuario y el cliente
   const userLat = userLocation.value.latitude;
   const userLon = userLocation.value.longitude;
   const clienteLat = parseFloat(cliente.LATITUD);
   const clienteLon = parseFloat(cliente.LONGITUD);
+  const distancia =
+    calcularDistancia(clienteLat, clienteLon, userLat, userLon) / 1000; // Convertir a kilómetros
+
   console.log(
     `Calculando distancia entre usuario y cliente: (${userLat}, ${userLon}) y (${clienteLat}, ${clienteLon})`
   );
-  const distancia = calcularDistancia(clienteLat, clienteLon, userLat, userLon);
-  console.log(`Distancia calculada: ${distancia} km`);
+  console.log(`Distancia calculada: ${distancia.toFixed(2)} km`);
 
+  // Guardar log siempre, con comentario solo si la distancia es mayor a 100 metros
+  let comentario = "";
   if (distancia > 0.1) {
-    // Convertimos 100 metros a kilómetros
-    console.log("Mostrando advertencia de distancia.");
-    showAlert({
-      title: "Advertencia",
-      text: `Estás a más de 100 metros del cliente.`,
-      icon: "warning",
-      confirmButtonText: "Entendido",
-    });
-  } else {
-    localStorage.setItem("clienteSeleccionado", JSON.stringify(cliente));
-    const clienteKunnr = String(cliente.KUNNR);
-    router.push({ name: "entregas", params: { id: clienteKunnr } });
+    // 100 metros en kilómetros
+    comentario = `Esta entrega se realizó a ${distancia.toFixed(
+      2
+    )} km de diferencia del punto de entrega.`;
   }
+  console.log(`Comentario: ${comentario}`); // Verifica que el comentario se asigna correctamente
+
+  await authStore.registrarEntrega(
+    cliente.KUNNR,
+    cliente.vbeln,
+    "entregado",
+    comentario
+  );
+
+  // Navegar a la pantalla de entregas
+  localStorage.setItem("clienteSeleccionado", JSON.stringify(cliente));
+  router.push({ name: "entregas", params: { id: String(cliente.KUNNR) } });
 };
 
 const mostrarSubmenu = async (cliente) => {
