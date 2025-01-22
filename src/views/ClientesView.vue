@@ -290,7 +290,7 @@ const irAEntregas = async (cliente) => {
     return;
   }
 
-  await updateUserLocation(); // Asegúrate de que la ubicación del usuario se ha actualizado
+  updateUserLocation(); // Asegúrate de que la ubicación del usuario se ha actualizado
 
   // Calcular la distancia entre el usuario y el cliente
   const userLat = userLocation.value.latitude;
@@ -309,7 +309,7 @@ const irAEntregas = async (cliente) => {
   let comentario = "";
   if (distancia > 0.1) {
     // 100 metros en kilómetros
-    comentario = `Esta entrega se realizó a ${distancia.toFixed(
+    comentario = `${distancia.toFixed(
       2
     )} km de diferencia del punto de entrega.`;
   }

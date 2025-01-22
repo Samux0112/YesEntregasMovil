@@ -148,9 +148,7 @@ const handleOptionConfirm = async () => {
 
   let comentario = "";
   if (distancia > 0.1) {
-    comentario = `Esta entrega se realizó a ${distancia.toFixed(
-      2
-    )} km de diferencia del punto de entrega.`;
+    comentario = `${distancia.toFixed(2)} km del punto de entrega.`;
   }
 
   if (selectedOption.value === "entregado") {
