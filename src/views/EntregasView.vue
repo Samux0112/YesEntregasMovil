@@ -134,22 +134,52 @@ const handleOptionConfirm = async () => {
   showDialog.value = false;
   let estadoCliente = "pendiente";
 
-  // Verificar la distancia y registrar el log si es mayor a 100 metros
+  // Obtener la ubicación del usuario desde el localStorage
   const userLocation = JSON.parse(localStorage.getItem("location")) || {
     latitude: 0,
     longitude: 0,
   };
   const userLat = parseFloat(userLocation.latitude);
   const userLon = parseFloat(userLocation.longitude);
-  const clienteLat = parseFloat(cliente.value.LATITUD);
-  const clienteLon = parseFloat(cliente.value.LONGITUD);
-  const distancia =
-    calcularDistancia(clienteLat, clienteLon, userLat, userLon) / 1000; // Convertir a km
+
+  // Verificar si las coordenadas del cliente existen
+  const clienteLat = cliente.value.LATITUD
+    ? parseFloat(cliente.value.LATITUD)
+    : null;
+  const clienteLon = cliente.value.LONGITUD
+    ? parseFloat(cliente.value.LONGITUD)
+    : null;
+
+  console.log("Coordenadas del cliente:", clienteLat, clienteLon);
+
+  let distancia = 0;
+  if (clienteLat !== null && clienteLon !== null) {
+    distancia =
+      calcularDistancia(clienteLat, clienteLon, userLat, userLon) / 1000; // Convertir a km
+  }
+
+  console.log("Distancia calculada:", distancia);
 
   let comentario = "";
   if (distancia > 0.1) {
     comentario = `${distancia.toFixed(2)} km del punto de entrega.`;
   }
+
+  // Llamar a obtenerUbicacionYEnviarLog con la ubicación del cliente si existen
+  await authStore.obtenerUbicacionYEnviarLog(
+    selectedOption.value === "entregado"
+      ? "Entrega realizada"
+      : "Entrega parcial o no realizada",
+    cliente.value.KUNNR,
+    arktxList.value[0]?.VBELN,
+    {
+      nota_aclaratoria: comentario,
+      latitudCliente:
+        clienteLat !== null ? clienteLat.toString() : "No disponible",
+      longitudCliente:
+        clienteLon !== null ? clienteLon.toString() : "No disponible",
+    }
+  );
 
   if (selectedOption.value === "entregado") {
     const entregadoData = arktxList.value.map((item) => ({
@@ -164,7 +194,7 @@ const handleOptionConfirm = async () => {
         "https://calidad-yesentregas-api.yes.com.sv/entregas/update/"
       );
       estadoCliente = "entregado";
-      await actualizarClientes(estadoCliente, comentario);
+      actualizarClientes(estadoCliente, comentario);
       showAlert(
         "Entregado",
         "Todos los productos han sido entregados.",
@@ -176,7 +206,7 @@ const handleOptionConfirm = async () => {
       console.error("Error al actualizar la entrega:", error);
       guardarDatosLocalmente(entregadoData, "entregasPendientes");
       estadoCliente = "entregado";
-      await actualizarClientes(estadoCliente, comentario);
+      actualizarClientes(estadoCliente, comentario);
       router.push("/clientes");
     }
   } else if (
@@ -215,7 +245,7 @@ const handleOptionConfirm = async () => {
         );
 
         estadoCliente = "no_entregado";
-        await actualizarClientes(estadoCliente, comentario);
+        actualizarClientes(estadoCliente, comentario);
         showAlert("Guardado", "Los datos han sido guardados.", "success").then(
           () => {
             router.push("/clientes");
@@ -223,7 +253,7 @@ const handleOptionConfirm = async () => {
         );
       } else {
         estadoCliente = "parcial";
-        await actualizarClientes(estadoCliente, comentario);
+        actualizarClientes(estadoCliente, comentario);
         showAlert("Guardado", "Los datos han sido guardados.", "success").then(
           () => {
             arktxList.value.forEach((item) => (item.editable = true));
@@ -241,11 +271,11 @@ const handleOptionConfirm = async () => {
         }));
         guardarDatosLocalmente(noEntregadoData, "noEntregadoPendiente");
         estadoCliente = "no_entregado";
-        await actualizarClientes(estadoCliente, comentario);
+        actualizarClientes(estadoCliente, comentario);
         router.push("/clientes");
       } else {
         estadoCliente = "parcial";
-        await actualizarClientes(estadoCliente, comentario);
+        actualizarClientes(estadoCliente, comentario);
         showDialog.value = false;
       }
     }
@@ -253,7 +283,7 @@ const handleOptionConfirm = async () => {
 };
 
 // Función para actualizar el estado de los clientes
-const actualizarClientes = async (estado, comentario) => {
+const actualizarClientes = (estado, comentario) => {
   let clientes = JSON.parse(localStorage.getItem("clientes")) || [];
   let clienteIndex = clientes.findIndex((c) => c.KUNNR === cliente.value.KUNNR);
   if (
@@ -264,16 +294,9 @@ const actualizarClientes = async (estado, comentario) => {
   ) {
     clientes[clienteIndex].estado = estado; // Actualizar el estado del cliente
     localStorage.setItem("clientes", JSON.stringify(clientes));
-
-    // Registrar la entrega en el log
-    await authStore.registrarEntrega(
-      cliente.value.KUNNR,
-      arktxList.value[0]?.VBELN,
-      estado,
-      comentario
-    );
   }
 };
+
 // Manejar la confirmación de productos entregados
 const handleConfirmAll = async () => {
   const invalidItems = arktxList.value.filter((item) => {

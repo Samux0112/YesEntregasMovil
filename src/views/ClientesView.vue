@@ -297,30 +297,24 @@ const irAEntregas = async (cliente) => {
   const userLon = userLocation.value.longitude;
   const clienteLat = parseFloat(cliente.LATITUD);
   const clienteLon = parseFloat(cliente.LONGITUD);
-  const distancia =
-    calcularDistancia(clienteLat, clienteLon, userLat, userLon) / 1000; // Convertir a kilómetros
+  const distancia = calcularDistancia(clienteLat, clienteLon, userLat, userLon); // La distancia está en metros
 
   console.log(
     `Calculando distancia entre usuario y cliente: (${userLat}, ${userLon}) y (${clienteLat}, ${clienteLon})`
   );
-  console.log(`Distancia calculada: ${distancia.toFixed(2)} km`);
+  console.log(`Distancia calculada: ${distancia.toFixed(2)} metros`);
 
-  // Guardar log siempre, con comentario solo si la distancia es mayor a 100 metros
-  let comentario = "";
-  if (distancia > 0.1) {
-    // 100 metros en kilómetros
-    comentario = `${distancia.toFixed(
-      2
-    )} km de diferencia del punto de entrega.`;
+  // Mostrar mensaje si la distancia es mayor a 100 metros
+  if (distancia > 100) {
+    // 100 metros
+    await showAlert({
+      title: "Advertencia",
+      text: "Estás a más de 100 metros del cliente. No puedes realizar la entrega.",
+      icon: "warning",
+      confirmButtonText: "Entendido",
+    });
+    return; // No proceder con la entrega
   }
-  console.log(`Comentario: ${comentario}`); // Verifica que el comentario se asigna correctamente
-
-  await authStore.registrarEntrega(
-    cliente.KUNNR,
-    cliente.vbeln,
-    "entregado",
-    comentario
-  );
 
   // Navegar a la pantalla de entregas
   localStorage.setItem("clienteSeleccionado", JSON.stringify(cliente));

@@ -250,70 +250,73 @@ export const useAuthStore = defineStore('auth', {
             // Utilizar la ubicación del localStorage
             const location = JSON.parse(localStorage.getItem('location'));
             if (!location) {
-              console.error('No se pudo obtener la ubicación del localStorage.');
-              return;
+                console.error('No se pudo obtener la ubicación del localStorage.');
+                return;
             }
           
             const logData = {
-              json_accion: {
-                'fecha-hora': new Date().toLocaleString('es-ES', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                }),
-                'Accion': accion,
-                'Username': this.user?.Username || 'No disponible',
-                'latitud': location.latitude.toString(),
-                'longitud': location.longitude.toString(),
-                'kunnag': kunnag,
-                'vbeln': vbeln,
-                'nota_aclaratoria': detalles.nota_aclaratoria || "" // Incluye detalles adicionales como el comentario si está presente
-              }
+                json_accion: {
+                    'fecha-hora': new Date().toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                    }),
+                    'Accion': accion,
+                    'Username': this.user?.Username || 'No disponible',
+                    'latitudEntregador': location.latitude.toString(),
+                    'longitudEntregador': location.longitude.toString(),
+                    'latitudCliente': detalles.latitudCliente,
+                    'longitudCliente': detalles.longitudCliente,
+                    'kunnag': kunnag,
+                    'vbeln': vbeln,
+                    'nota_aclaratoria': detalles.nota_aclaratoria || "" // Incluye detalles adicionales como el comentario si está presente
+                }
             };
           
             console.log('Datos del log:', logData); // Añadir log de depuración
           
             const token = localStorage.getItem('token');
             if (token) {
-              try {
-                const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/logs/', logData, {
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                  }
-                });
-                if (response.status === 200 || response.status === 201) {
-                  console.log('Log enviado correctamente.');
-                  this.actions.push(logData.json_accion);
-                } else {
-                  console.error('Error al enviar el log:', response);
+                try {
+                    const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/logs/', logData, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (response.status === 200 || response.status === 201) {
+                        console.log('Log enviado correctamente.');
+                        this.actions.push(logData.json_accion);
+                    } else {
+                        console.error('Error al enviar el log:', response);
+                    }
+                } catch (error) {
+                    console.error('Error al enviar el log:', error);
                 }
-              } catch (error) {
-                console.error('Error al enviar el log:', error);
-              }
             } else {
-              console.error('Token no encontrado en el almacenamiento local.');
+                console.error('Token no encontrado en el almacenamiento local.');
             }
-          },
+        },
 
         async registrarAccion(accion, detalles = {}) {
             console.log(`Registrando acción: ${accion}`); // Añadir log de depuración
             await this.obtenerUbicacionYEnviarLog(accion, detalles.kunnag, detalles.vbeln, detalles);
         },
 
-        async registrarEntrega(kunnag, vbeln, tipoEntrega, comentario = '') {
+        async registrarEntrega(kunnag, vbeln, tipoEntrega, comentario = '', latitudCliente = null, longitudCliente = null) {
             if (!vbeln) {
-              console.warn(`VBELN no disponible para kunnag: ${kunnag}, tipoEntrega: ${tipoEntrega}`);
-              return;
+                console.warn(`VBELN no disponible para kunnag: ${kunnag}, tipoEntrega: ${tipoEntrega}`);
+                return;
             }
             const accion = `Entrega realizada (${tipoEntrega})`;
             console.log(`Registrando entrega: ${accion}, kunnag: ${kunnag}, vbeln: ${vbeln}, comentario: ${comentario}`); // Añadir log de depuración
-          
-            await this.registrarAccion(accion, { kunnag, vbeln, nota_aclaratoria: comentario });
-          },
+        
+            // Llamar directamente a obtenerUbicacionYEnviarLog
+            await this.obtenerUbicacionYEnviarLog(accion, kunnag, vbeln, { nota_aclaratoria: comentario, latitudCliente, longitudCliente });
+        },
 
         async terminarDia() {
             console.log('Registrando acción: Terminar día'); // Añadir log de depuración
