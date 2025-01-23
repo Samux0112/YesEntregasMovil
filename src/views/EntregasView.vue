@@ -182,9 +182,9 @@ const handleOptionConfirm = async () => {
     return;
   }
 
-  // Convertir estimadoLlegada a minutos, añadir 5 minutos y convertir de nuevo a formato
+  // Convertir estimadoLlegada a minutos, añadir 10 minutos y convertir de nuevo a formato
   const tiempoEstimadoMinutos = convertirATiempoEnMinutos(estimadoLlegada);
-  const tiempoActualizadoMinutos = tiempoEstimadoMinutos + 10; //aqui se le agregan los minutos
+  const tiempoActualizadoMinutos = tiempoEstimadoMinutos + 10; // aquí se le agregan los minutos
   estimadoLlegada = convertirMinutosAFormato(tiempoActualizadoMinutos);
 
   // Registrar hora de inicio de traslado
@@ -225,8 +225,10 @@ const handleOptionConfirm = async () => {
   // Llamar a obtenerUbicacionYEnviarLog con la ubicación del cliente si existen
   await authStore.obtenerUbicacionYEnviarLog(
     selectedOption.value === "entregado"
-      ? "Entrega realizada"
-      : "Entrega parcial o no realizada",
+      ? "Entrega realizada (entregado)"
+      : selectedOption.value === "parcial"
+      ? "Entrega realizada (parcial)"
+      : "Entrega realizada (no_entregado)",
     cliente.value.KUNNR,
     arktxList.value[0]?.VBELN,
     {
