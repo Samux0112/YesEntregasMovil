@@ -15,7 +15,10 @@ const authStore = useAuthStore();
 const username = computed(() => authStore.user?.Username);
 const filters1 = ref({});
 const showConfirmButton = ref(false);
-
+const horaInicioVisita = ref(null);
+const horaFinVisita = ref(null);
+const horaInicioTraslado = ref(null);
+const horaFinTraslado = ref(null);
 // Estado para el diálogo y el combo box
 const showDialog = ref(false);
 const selectedOption = ref(null);
@@ -130,9 +133,63 @@ const handleOption = async (option) => {
   }
 };
 
+// Función para convertir tiempo en formato "X h Y min" a minutos
+const convertirATiempoEnMinutos = (tiempo) => {
+  let horas = 0;
+  let minutos = 0;
+
+  if (tiempo.includes("h")) {
+    const partes = tiempo.split("h");
+    horas = parseInt(partes[0].trim(), 10);
+    minutos = partes[1] ? parseInt(partes[1].trim(), 10) : 0;
+  } else {
+    minutos = parseInt(tiempo.trim(), 10);
+  }
+
+  return horas * 60 + minutos;
+};
+
+// Función para convertir minutos a formato "X h Y min"
+const convertirMinutosAFormato = (minutos) => {
+  const horas = Math.floor(minutos / 60);
+  const minutosRestantes = minutos % 60;
+  return `${horas > 0 ? horas + " h " : ""}${minutosRestantes} min`;
+};
+
 const handleOptionConfirm = async () => {
   showDialog.value = false;
   let estadoCliente = "pendiente";
+
+  // Obtener hora de inicio de visita desde localStorage
+  const horaInicioVisita = parseInt(
+    localStorage.getItem("horaInicioVisita"),
+    10
+  );
+  if (isNaN(horaInicioVisita)) {
+    console.error("Hora de inicio de visita no encontrada en localStorage.");
+    return;
+  }
+
+  const horaFinVisita = Date.now();
+  const tiempoVisita = (horaFinVisita - horaInicioVisita) / 1000 / 60; // en minutos
+
+  // Obtener tiempo estimado de llegada desde localStorage
+  let estimadoLlegada = localStorage.getItem(
+    `estimadoLlegada_${cliente.value.KUNNR}`
+  );
+  if (!estimadoLlegada) {
+    console.error("Tiempo estimado de llegada no encontrado en localStorage.");
+    return;
+  }
+
+  // Convertir estimadoLlegada a minutos, añadir 5 minutos y convertir de nuevo a formato
+  const tiempoEstimadoMinutos = convertirATiempoEnMinutos(estimadoLlegada);
+  const tiempoActualizadoMinutos = tiempoEstimadoMinutos + 10; //aqui se le agregan los minutos
+  estimadoLlegada = convertirMinutosAFormato(tiempoActualizadoMinutos);
+
+  // Registrar hora de inicio de traslado
+  const horaInicioTraslado = Date.now();
+  localStorage.setItem("horaInicioTraslado", horaInicioTraslado.toString());
 
   // Obtener la ubicación del usuario desde el localStorage
   const userLocation = JSON.parse(localStorage.getItem("location")) || {
@@ -178,6 +235,10 @@ const handleOptionConfirm = async () => {
         clienteLat !== null ? clienteLat.toString() : "No disponible",
       longitudCliente:
         clienteLon !== null ? clienteLon.toString() : "No disponible",
+      horaInicioVisita, // Enviar hora de inicio de visita
+      horaFinVisita, // Enviar hora de fin de visita
+      tiempoVisita: tiempoVisita.toFixed(2), // Enviar tiempo de visita en minutos
+      tiempoTraslado: estimadoLlegada, // Enviar tiempo estimado de llegada actualizado
     }
   );
 

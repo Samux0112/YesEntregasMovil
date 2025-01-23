@@ -13,7 +13,11 @@ export const useAuthStore = defineStore('auth', {
         error: null,
         location: JSON.parse(localStorage.getItem('location')) || null,
         actions: [], // Para almacenar las acciones del usuario
-        isMuted: JSON.parse(localStorage.getItem('isMuted')) || false // Estado de mute
+        isMuted: JSON.parse(localStorage.getItem('isMuted')) || false, // Estado de mute
+        horaInicioVisita: null,
+        horaFinVisita: null,
+        horaInicioTraslado: null,
+        horaFinTraslado: null
     }),
 
     actions: {
@@ -246,14 +250,19 @@ export const useAuthStore = defineStore('auth', {
 
         async obtenerUbicacionYEnviarLog(accion, kunnag = null, vbeln = null, detalles = {}) {
             console.log(`Iniciando obtenerUbicacionYEnviarLog: ${accion}`); // Añadir log de depuración
-          
+        
             // Utilizar la ubicación del localStorage
             const location = JSON.parse(localStorage.getItem('location'));
             if (!location) {
                 console.error('No se pudo obtener la ubicación del localStorage.');
                 return;
             }
-          
+        
+            // Calcular tiempos de visita y traslado
+            const tiempoVisita = detalles.horaInicioVisita && detalles.horaFinVisita ? 
+                (detalles.horaFinVisita - detalles.horaInicioVisita) / 1000 / 60 : null; // en minutos
+            const tiempoTraslado = detalles.tiempoTraslado || null; // en formato "X h Y min"
+        
             const logData = {
                 json_accion: {
                     'fecha-hora': new Date().toLocaleString('es-ES', {
@@ -272,12 +281,15 @@ export const useAuthStore = defineStore('auth', {
                     'longitudCliente': detalles.longitudCliente,
                     'kunnag': kunnag,
                     'vbeln': vbeln,
-                    'nota_aclaratoria': detalles.nota_aclaratoria || "" // Incluye detalles adicionales como el comentario si está presente
+                    'nota_aclaratoria': detalles.nota_aclaratoria || "", // Incluye detalles adicionales como el comentario si está presente
+                    'hora de visita': detalles.horaInicioVisita ? new Date(detalles.horaInicioVisita).toLocaleString('es-ES') : null,
+                    'tiempo de visita': tiempoVisita ? `${tiempoVisita.toFixed(2)} minutos` : null,
+                    'tiempo de traslado': tiempoTraslado ? tiempoTraslado : null // Asegúrate de que tiempoTraslado se maneje correctamente
                 }
             };
-          
+        
             console.log('Datos del log:', logData); // Añadir log de depuración
-          
+        
             const token = localStorage.getItem('token');
             if (token) {
                 try {
@@ -313,6 +325,14 @@ export const useAuthStore = defineStore('auth', {
             }
             const accion = `Entrega realizada (${tipoEntrega})`;
             console.log(`Registrando entrega: ${accion}, kunnag: ${kunnag}, vbeln: ${vbeln}, comentario: ${comentario}`); // Añadir log de depuración
+        
+            // Calcular el tiempo de visita
+            this.horaFinVisita = Date.now();
+            const tiempoVisita = (this.horaFinVisita - this.horaInicioVisita) / 1000 / 60; // en minutos
+            comentario += ` Tiempo de visita: ${tiempoVisita.toFixed(2)} minutos.`;
+
+            // Registrar hora de inicio de traslado
+            this.horaInicioTraslado = Date.now();
         
             // Llamar directamente a obtenerUbicacionYEnviarLog
             await this.obtenerUbicacionYEnviarLog(accion, kunnag, vbeln, { nota_aclaratoria: comentario, latitudCliente, longitudCliente });

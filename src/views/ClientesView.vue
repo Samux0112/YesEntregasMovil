@@ -122,6 +122,9 @@ const recalcularDistanciaClientes = async () => {
       )} km - Tiempo estimado: ${estimadoLlegada}`
     );
 
+    // Guardar el tiempo estimado de llegada en localStorage
+    localStorage.setItem(`estimadoLlegada_${cliente.KUNNR}`, estimadoLlegada);
+
     return {
       ...cliente,
       distancia: distancia.toFixed(2),
@@ -297,24 +300,39 @@ const irAEntregas = async (cliente) => {
   const userLon = userLocation.value.longitude;
   const clienteLat = parseFloat(cliente.LATITUD);
   const clienteLon = parseFloat(cliente.LONGITUD);
-  const distancia = calcularDistancia(clienteLat, clienteLon, userLat, userLon); // La distancia está en metros
+  const distancia = calcularDistancia(clienteLat, clienteLon, userLat, userLon); // La distancia está en kilómetros
 
   console.log(
     `Calculando distancia entre usuario y cliente: (${userLat}, ${userLon}) y (${clienteLat}, ${clienteLon})`
   );
-  console.log(`Distancia calculada: ${distancia.toFixed(2)} metros`);
+  console.log(`Distancia calculada: ${distancia.toFixed(2)} km`);
 
   // Mostrar mensaje si la distancia es mayor a 100 metros
-  if (distancia > 100) {
+  if (distancia > 0.1) {
     // 100 metros
     await showAlert({
       title: "Advertencia",
       text: "Estás a más de 100 metros del cliente. No puedes realizar la entrega.",
       icon: "warning",
       confirmButtonText: "Entendido",
-    });
-    return; // No proceder con la entrega
+    }); // No proceder con la entrega
   }
+
+  // Calcular tiempo estimado de llegada y agregar 20 minutos
+  const estimadoLlegada = obtenerEstimadoLlegada(distancia); // En minutos
+  const tiempoEstimadoMinutos = estimadoLlegada.includes("h")
+    ? parseInt(estimadoLlegada.split("h")[0]) * 60 +
+      parseInt(estimadoLlegada.split("h")[1])
+    : parseInt(estimadoLlegada);
+  const tiempoTraslado = tiempoEstimadoMinutos + 20;
+
+  // Guardar tiempo de traslado y estimadoLlegada en localStorage
+  localStorage.setItem("tiempoTraslado", tiempoTraslado.toString());
+  localStorage.setItem(`estimadoLlegada_${cliente.KUNNR}`, estimadoLlegada);
+
+  // Registrar hora de inicio de visita y guardar en localStorage
+  const horaInicioVisita = Date.now();
+  localStorage.setItem("horaInicioVisita", horaInicioVisita.toString());
 
   // Navegar a la pantalla de entregas
   localStorage.setItem("clienteSeleccionado", JSON.stringify(cliente));
