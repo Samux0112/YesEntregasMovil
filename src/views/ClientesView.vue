@@ -32,6 +32,7 @@ const submenuOptions = [
   { label: "Ir Ahora", value: "ruta" },
   { label: "Formulario de Encuestas", value: "encuesta" },
   { label: "Llamada Telefónica", value: "llamada" },
+  { label: "Agregar Comentario", value: "comentario" }, // Nueva opción
 ];
 
 const imageUrl = ref(null);
@@ -312,7 +313,7 @@ const irAEntregas = async (cliente) => {
     // 100 metros
     await showAlert({
       title: "Advertencia",
-      text: "Estás a más de 100 metros del cliente. No puedes realizar la entrega.",
+      text: "Estás a más de 100 metros del cliente.",
       icon: "warning",
       confirmButtonText: "Entendido",
     }); // No proceder con la entrega
@@ -492,10 +493,77 @@ const handleSubmenuClick = async (option) => {
       const numeroTelefono = submenuCliente.value.TELF1;
       window.open(`tel:${numeroTelefono}`);
       break;
+    case "comentario":
+      mostrarComentarioDialogo();
+      break;
   }
   showSubmenu.value = false;
 };
+const mostrarComentarioDialogo = async () => {
+  const { value: comentario } = await showAlert({
+    title: "Agregar Comentario",
+    input: "textarea",
+    inputLabel: "Comentario",
+    inputPlaceholder: "Escriba su comentario aquí...",
+    showCancelButton: true,
+    confirmButtonText: "Guardar",
+    cancelButtonText: "Cancelar",
+  });
 
+  if (comentario) {
+    agregarComentarioAlCliente(submenuCliente.value.KUNNR, comentario);
+  }
+};
+
+const agregarComentarioAlCliente = async (kunnr, comentario) => {
+  // Obtener los valores actuales de latitud y longitud del cliente del localStorage
+  const clientesGuardados = JSON.parse(localStorage.getItem("clientes")) || [];
+  const cliente = clientesGuardados.find((cliente) => cliente.KUNNR === kunnr);
+
+  if (cliente) {
+    const data = new FormData();
+    data.append("kunnr", kunnr);
+    data.append("latitud", cliente.LATITUD);
+    data.append("longitud", cliente.LONGITUD);
+    data.append("comentario", comentario);
+
+    // Verificar si hay una imagen almacenada en el localStorage y agregarla si existe
+    const imagenKey = `imagen_${kunnr}`; // Suponiendo que usas una clave específica para almacenar la imagen
+    const imagen = localStorage.getItem(imagenKey);
+    if (imagen) {
+      const blob = await (await fetch(imagen)).blob();
+      const file = new File([blob], `${kunnr}.jpg`, { type: "image/jpeg" });
+      data.append("file", file);
+    }
+
+    try {
+      const response = await axios.post(
+        "https://calidad-yesentregas-api.yes.com.sv/clientes/update/",
+        data,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      showAlert(
+        "Comentario Guardado",
+        "El comentario ha sido guardado correctamente.",
+        "success"
+      );
+      console.log("Respuesta de la API:", response.data);
+
+      await cargarClientes(); // Esto actualizará el localStorage con la nueva información
+    } catch (error) {
+      console.error("Error al guardar el comentario:", error);
+      showAlert("Error", "Hubo un problema al guardar el comentario.", "error");
+    }
+  } else {
+    console.error("Cliente no encontrado en el localStorage");
+    showAlert("Error", "Cliente no encontrado.", "error");
+  }
+};
 const anunciarPantallaClientes = async () => {
   const mensaje =
     "Esta es la pantalla de clientes. Son los clientes pendientes que se tienen para este día.";
@@ -1023,6 +1091,11 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
           icon="pi pi-compass"
           label="Tomar Georreferencia"
           @click="handleSubmenuClick({ value: 'georreferencia' })"
+        />
+        <Button
+          icon="pi pi-comment"
+          label="Agregar Comentario de cliente"
+          @click="handleSubmenuClick({ value: 'comentario' })"
         />
         <Button
           icon="pi pi-map"
