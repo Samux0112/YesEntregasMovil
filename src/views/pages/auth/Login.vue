@@ -1,16 +1,22 @@
 <script setup>
 import { useAuthStore } from "@/api-plugins/authStores.js"; // Importa el store de autenticación
 import { useLayout } from "@/layout/composables/layout";
-import Button from "primevue/button";
-import InputText from "primevue/inputtext";
-import Password from "primevue/password";
-import { ref, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
+
 const { showAlert } = useLayout();
 const username = ref("");
 const password = ref("");
 const authStore = useAuthStore(); // Instancia del store
 const router = useRouter();
+
+// Precargar credenciales de localStorage
+onMounted(() => {
+  const savedUsername = localStorage.getItem("savedUsername");
+  const savedPassword = localStorage.getItem("savedPassword");
+  if (savedUsername) username.value = savedUsername;
+  if (savedPassword) password.value = savedPassword;
+});
 
 // Poner en mayúscula las palabras del username
 watch(username, (newValue) => {
@@ -34,8 +40,15 @@ const handleLogin = async () => {
   }
 
   try {
-    await authStore.login(username.value, password.value); // Llamamos la acción login
-    router.push("/dashboard"); // Redirige al dashboard si el login es exitoso
+    // Guardar las credenciales en localStorage
+    localStorage.setItem("savedUsername", username.value);
+    localStorage.setItem("savedPassword", password.value);
+
+    // Llamar al método de inicio de sesión del store
+    await authStore.login(username.value, password.value);
+
+    // Redirigir al dashboard si el inicio de sesión es exitoso
+    router.push("/dashboard");
   } catch (error) {
     console.error("Error en el inicio de sesión:", error);
     showAlert(
@@ -46,6 +59,7 @@ const handleLogin = async () => {
   }
 };
 </script>
+
 
 <template>
   <div
@@ -86,7 +100,7 @@ const handleLogin = async () => {
             >
           </div>
 
-          <div>
+          <form @submit.prevent="handleLogin">
             <label
               for="username"
               class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2"
@@ -97,6 +111,8 @@ const handleLogin = async () => {
               type="text"
               class="w-full mb-8"
               v-model="username"
+              autocomplete="username-new"
+              required
             />
 
             <label
@@ -111,21 +127,24 @@ const handleLogin = async () => {
               class="mb-4"
               fluid
               :feedback="false"
+              autocomplete="password"
+              required
               @keyup.enter="handleLogin"
             />
             <!-- Botón de inicio de sesión -->
             <Button
               label="Iniciar Sesión"
+              type="submit"
               class="w-full p-button-orange"
-              @click="handleLogin"
             ></Button>
-          </div>
+          </form>
         </div>
       </div>
     </div>
   </div>
 </template>
-  <style scoped>
+
+<style scoped>
 /* Asegurar que los textos aparecen visualmente en mayúsculas */
 #username,
 #password {

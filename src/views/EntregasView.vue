@@ -15,20 +15,12 @@ const authStore = useAuthStore();
 const username = computed(() => authStore.user?.Username);
 const filters1 = ref({});
 const showConfirmButton = ref(false);
-const horaInicioVisita = ref(null);
-const horaFinVisita = ref(null);
-const horaInicioTraslado = ref(null);
-const horaFinTraslado = ref(null);
+
 // Estado para el diálogo y el combo box
 const showDialog = ref(false);
 const selectedOption = ref(null);
 const selectedMotivo = ref(null);
 const comment = ref("");
-const options = [
-  { label: "Entregado", value: "entregado" },
-  { label: "Parcial", value: "parcial" },
-  { label: "No Entregado", value: "no_entregado" },
-];
 const motivos = ref([]);
 
 // Computed properties
@@ -89,38 +81,6 @@ const calcularDistancia = (lat1, lon1, lat2, lon2) => {
   return distancia;
 };
 
-// Función para verificar la distancia antes de permitir la entrega
-const verificarDistancia = () => {
-  // Obtener la ubicación del usuario desde el localStorage
-  const userLocation = JSON.parse(localStorage.getItem("location")) || {
-    latitude: 0,
-    longitude: 0,
-  };
-  const userLat = parseFloat(userLocation.latitude);
-  const userLon = parseFloat(userLocation.longitude);
-
-  // Calcular la distancia entre el usuario y el cliente
-  const clienteLat = parseFloat(cliente.value.LATITUD);
-  const clienteLon = parseFloat(cliente.value.LONGITUD);
-
-  console.log(
-    `Calculando distancia entre usuario y cliente: (${userLat}, ${userLon}) y (${clienteLat}, ${clienteLon})`
-  );
-
-  const distancia = calcularDistancia(clienteLat, clienteLon, userLat, userLon);
-
-  if (distancia > 100) {
-    showAlert({
-      title: "Advertencia",
-      text: "Estás a más de 100 metros del cliente. No puedes realizar la entrega.",
-      icon: "warning",
-      confirmButtonText: "Entendido",
-    });
-    return false; // No permitir la entrega
-  }
-  return true; // Permitir la entrega
-};
-
 // Función para manejar la opción seleccionada (nueva función)
 const handleOption = async (option) => {
   selectedOption.value = option;
@@ -143,7 +103,7 @@ const convertirATiempoEnMinutos = (tiempo) => {
     horas = parseInt(partes[0].trim(), 10);
     minutos = partes[1] ? parseInt(partes[1].trim(), 10) : 0;
   } else {
-    minutos = parseInt(tiempo.trim(), 10);
+    minutos = parseInt(tiempo.trim(), 10); // Cambiar base 6 a 10
   }
 
   return horas * 60 + minutos;
@@ -184,7 +144,7 @@ const handleOptionConfirm = async () => {
 
   // Convertir estimadoLlegada a minutos, añadir 10 minutos y convertir de nuevo a formato
   const tiempoEstimadoMinutos = convertirATiempoEnMinutos(estimadoLlegada);
-  const tiempoActualizadoMinutos = tiempoEstimadoMinutos + 10; // aquí se le agregan los minutos
+  const tiempoActualizadoMinutos = tiempoEstimadoMinutos + 6; // aquí se le agregan los minutos
   estimadoLlegada = convertirMinutosAFormato(tiempoActualizadoMinutos);
 
   // Registrar hora de inicio de traslado

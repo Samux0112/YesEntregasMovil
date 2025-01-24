@@ -8,7 +8,7 @@ import Swal from "sweetalert2";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 //este hay que descomentariar si se compila en produccion o en este caso apk
-import Highcharts from "highcharts";
+//import Highcharts from "highcharts";
 const { showAlert } = useLayout();
 const { getPrimary, isDarkTheme } = useLayout();
 const router = useRouter();
@@ -791,16 +791,17 @@ const verificarActualizacionesCompletas = async () => {
     });
   }
 };
-
-//calcula la distancia estimada en trafico
-
+// Función para obtener el tiempo estimado de llegada basado en tráfico
 const obtenerEstimadoLlegada = (distancia) => {
-  const velocidadPromedio = 50; // Velocidad promedio en km/h
+  const velocidadPromedio = 30; // Velocidad promedio en km/h ajustada según Waze
   const tiempoHoras = distancia / velocidadPromedio;
   const tiempoMinutos = tiempoHoras * 60;
 
-  const horas = Math.floor(tiempoMinutos / 60);
-  const minutos = Math.floor(tiempoMinutos % 60);
+  // Ajuste mínimo para evitar tiempos menores a 1 minuto
+  const minutosAjustados = Math.max(Math.ceil(tiempoMinutos), 10);
+
+  const horas = Math.floor(minutosAjustados / 60);
+  const minutos = minutosAjustados % 60;
 
   return `${horas > 0 ? horas + " h " : ""}${minutos} min`;
 };

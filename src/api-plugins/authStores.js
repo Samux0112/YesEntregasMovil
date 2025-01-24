@@ -7,9 +7,9 @@ const { showAlert } = useLayout();
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
-        user: null,
-        groups: [],
-        token: null,
+        user: JSON.parse(localStorage.getItem('user')) || null,
+        groups: JSON.parse(localStorage.getItem('groups')) || [],
+        token: localStorage.getItem('token') || null,
         error: null,
         location: JSON.parse(localStorage.getItem('location')) || null,
         actions: [], // Para almacenar las acciones del usuario
