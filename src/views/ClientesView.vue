@@ -32,7 +32,8 @@ const submenuOptions = [
   { label: "Ir Ahora", value: "ruta" },
   { label: "Formulario de Encuestas", value: "encuesta" },
   { label: "Llamada Telefónica", value: "llamada" },
-  { label: "Agregar Comentario", value: "comentario" }, // Nueva opción
+  { label: "Agregar Comentario", value: "comentario" },
+  { label: "Agregar Cestas y jabas", value: "cestasyjabas" },
 ];
 
 const imageUrl = ref(null);
@@ -496,6 +497,9 @@ const handleSubmenuClick = async (option) => {
     case "comentario":
       mostrarComentarioDialogo();
       break;
+    case "cestasyjabas":
+      mostrarCestasYJabasDialogo();
+      break;
   }
   showSubmenu.value = false;
 };
@@ -789,6 +793,81 @@ const verificarActualizacionesCompletas = async () => {
       // Marcar el día como terminado y redirigir al dashboard
       terminarDia();
     });
+  }
+};
+
+const insertarCestasYJabas = async (
+  kunnr,
+  cantidad,
+  cantidadPalets,
+  usuario
+) => {
+  const data = {
+    kunnr,
+    vbeln: "",
+    tipo_mov: "E",
+    cantidad,
+    fecha: new Date().toISOString().split("T")[0],
+    usuario,
+    cantidad_palets: cantidadPalets,
+  };
+
+  try {
+    const response = await axios.post(
+      "https://calidad-yesentregas-api.yes.com.sv/control-cestas/insert/",
+      data,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    showAlert(
+      "Operación exitosa",
+      "Las cestas y jabas han sido insertadas correctamente.",
+      "success"
+    );
+    console.log("Respuesta de la API:", response.data);
+  } catch (error) {
+    console.error("Error al insertar las cestas y jabas:", error);
+    showAlert(
+      "Error",
+      "Hubo un problema al insertar las cestas y jabas.",
+      "error"
+    );
+  }
+};
+const mostrarCestasYJabasDialogo = async () => {
+  const { value: formValues } = await showAlert({
+    title: "Agregar Cestas y Jabas",
+    html:
+      '<input id="swal-input1" class="swal2-input" placeholder="Cantidad de cestas">' +
+      '<input id="swal-input2" class="swal2-input" placeholder="Cantidad de palets">',
+    focusConfirm: false,
+    preConfirm: () => {
+      const cantidad = document.getElementById("swal-input1").value;
+      const cantidadPalets = document.getElementById("swal-input2").value;
+      return { cantidad, cantidadPalets };
+    },
+  });
+
+  if (formValues) {
+    const { cantidad, cantidadPalets } = formValues;
+    if (
+      !cantidad ||
+      !cantidadPalets ||
+      isNaN(cantidad) ||
+      isNaN(cantidadPalets)
+    ) {
+      Swal.showValidationMessage(`Por favor ingrese valores numéricos válidos`);
+    } else {
+      await insertarCestasYJabas(
+        submenuCliente.value.KUNNR,
+        cantidad,
+        cantidadPalets,
+        username.value
+      );
+    }
   }
 };
 // Función para obtener el tiempo estimado de llegada basado en tráfico
@@ -1095,8 +1174,13 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
         />
         <Button
           icon="pi pi-comment"
-          label="Agregar Comentario de cliente"
+          label="Agregar Comentario al cliente"
           @click="handleSubmenuClick({ value: 'comentario' })"
+        />
+        <Button
+          icon="pi pi-thumbs-up"
+          label="Agregar cestas y jabas al cliente"
+          @click="handleSubmenuClick({ value: 'cestasyjabas' })"
         />
         <Button
           icon="pi pi-map"
