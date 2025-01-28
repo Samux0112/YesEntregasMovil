@@ -90,67 +90,17 @@ export const useAuthStore = defineStore('auth', {
                 } else {
                     this.error = err.message || 'Ocurrió un error inesperado.';
                 }
-
-                showAlert({
-                    title: 'Error',
-                    text: this.error,
-                    icon: 'error',
-                    confirmButtonText: 'Intentar de nuevo'
-                });
+                // showAlert({
+                //     title: 'Error',
+                //     text: this.error,
+                //     icon: 'error',
+                //     confirmButtonText: 'Intentar de nuevo'
+                // });
             }
         },
 
         setAxiosToken(token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        },
-
-        async startLocationWatch() {
-            if ("geolocation" in navigator) {
-                return new Promise((resolve, reject) => {
-                    const successCallback = (position) => {
-                        const newLocation = {
-                            latitude: position.coords.latitude,
-                            longitude: position.coords.longitude,
-                        };
-                        if (
-                            !this.location ||
-                            this.location.latitude !== newLocation.latitude ||
-                            this.location.longitude !== newLocation.longitude
-                        ) {
-                            this.location = newLocation;
-                            localStorage.setItem("location", JSON.stringify(newLocation));
-                            console.log("Ubicación actualizada:", newLocation);
-                        }
-                        resolve();
-                    };
-
-                    const errorCallback = (error) => {
-                        console.error("Error al obtener la ubicación:", error.message);
-                        reject(error);
-                    };
-
-                    const options = {
-                        enableHighAccuracy: true,
-                        timeout: 5000,
-                        maximumAge: 0,
-                    };
-
-                    navigator.geolocation.watchPosition(
-                        successCallback,
-                        errorCallback,
-                        options
-                    );
-                });
-            } else {
-                console.error("Geolocalización no soportada por el navegador");
-                showAlert({
-                    title: "Error",
-                    text: "Geolocalización no soportada por el navegador",
-                    icon: "error",
-                    confirmButtonText: "Entendido",
-                });
-                return Promise.reject(new Error("Geolocalización no soportada por el navegador"));
-            }
         },
 
         // Función para observar cambios en localStorage

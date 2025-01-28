@@ -109,7 +109,14 @@ export default {
 };
 </script>
 <template>
-  <div>
-    <Button @click="confirmarLimpieza">Limpiar LocalStorage</Button>
+  <div class="grid grid-cols-12 gap-8">
+    <div class="col-span-12 text-center">
+      <!-- Botón de inicio de día -->
+      <Button
+        label="Limpiar Base de datos"
+        class="w-auto p-2 text-sm"
+        @click="confirmarLimpieza"
+      ></Button>
+    </div>
   </div>
 </template>
