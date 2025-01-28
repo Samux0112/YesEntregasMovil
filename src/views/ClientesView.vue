@@ -345,7 +345,7 @@ const mostrarSubmenu = async (cliente) => {
   if (cliente) {
     submenuCliente.value = cliente;
     showSubmenu.value = true;
-    await authStore.requestLocationPermissions();
+    // await authStore.requestLocationPermissions();
   } else {
     console.error("Cliente es null");
   }
@@ -437,7 +437,7 @@ async function redirigir() {
     window.open(urlEncuesta, "_blank");
   }
 }
-const handleSubmenuClick = async (option) => {
+const handleSubmenuClick = async (option, cliente) => {
   switch (option.value) {
     case "georreferencia":
       const fotoFile = await tomarFoto(submenuCliente.value.KUNNR);
@@ -473,16 +473,20 @@ const handleSubmenuClick = async (option) => {
       }
       break;
     case "ruta":
-      const urlWaze = `https://www.waze.com/ul?ll=${userLocation.value.latitude},${userLocation.value.longitude}&navigate=yes`;
-      const urlMaps = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.value.latitude},${userLocation.value.longitude}&destination=${submenuCliente.value.LATITUD},${submenuCliente.value.LONGITUD}`;
+      const userLatRoute = userLocation.value.latitude;
+      const userLonRoute = userLocation.value.longitude;
+      const clienteLatRoute = cliente.LATITUD;
+      const clienteLonRoute = cliente.LONGITUD;
+
+      const urlWaze = `https://www.waze.com/ul?ll=${clienteLatRoute},${clienteLonRoute}&navigate=yes&from=${userLatRoute},${userLonRoute}`;
+      const urlMaps = `https://www.google.com/maps/dir/?api=1&origin=${userLatRoute},${userLonRoute}&destination=${clienteLatRoute},${clienteLonRoute}`;
+
       showAlert({
         title: "Ir Ahora",
         html: `
-                    <button onclick="window.open('${urlWaze}', '_blank')" class="swal2-confirm swal2-styled">Abrir en Waze
-                    </button><br>
-                    <button onclick="window.open('${urlMaps}', '_blank')" class="swal2-confirm swal2-styled">Abrir en Google Maps
-                    </button>
-                `,
+          <button onclick="window.open('${urlWaze}', '_blank')" class="swal2-confirm swal2-styled">Abrir en Waze</button><br>
+          <button onclick="window.open('${urlMaps}', '_blank')" class="swal2-confirm swal2-styled">Abrir en Google Maps</button>
+        `,
         showCancelButton: true,
         cancelButtonText: "Cerrar",
       });
@@ -1124,9 +1128,9 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
                           class="bg-surface-0 flex items-center gap-2 justify-center py-1 px-2"
                           style="border-radius: 30px"
                         >
-                          <span class="text-surface-900 font-medium text-sm">
-                            Dirección: {{ cliente.STRAS }}
-                          </span>
+                          <span class="text-surface-900 font-medium text-sm"
+                            >Dirección: {{ cliente.STRAS }}</span
+                          >
                           <i class="pi pi-map text-500"></i>
                         </div>
                       </div>
@@ -1170,32 +1174,34 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
         <Button
           icon="pi pi-compass"
           label="Tomar Georreferencia"
-          @click="handleSubmenuClick({ value: 'georreferencia' })"
+          @click="
+            handleSubmenuClick({ value: 'georreferencia' }, submenuCliente)
+          "
         />
         <Button
           icon="pi pi-comment"
           label="Agregar Comentario al cliente"
-          @click="handleSubmenuClick({ value: 'comentario' })"
+          @click="handleSubmenuClick({ value: 'comentario' }, submenuCliente)"
         />
         <Button
           icon="pi pi-thumbs-up"
           label="Agregar cestas y jabas al cliente"
-          @click="handleSubmenuClick({ value: 'cestasyjabas' })"
+          @click="handleSubmenuClick({ value: 'cestasyjabas' }, submenuCliente)"
         />
         <Button
           icon="pi pi-map"
           label="Ir Ahora"
-          @click="handleSubmenuClick({ value: 'ruta' })"
+          @click="handleSubmenuClick({ value: 'ruta' }, submenuCliente)"
         />
         <Button
           icon="pi pi-question-circle"
           label="Formulario de Encuestas"
-          @click="handleSubmenuClick({ value: 'encuesta' })"
+          @click="handleSubmenuClick({ value: 'encuesta' }, submenuCliente)"
         />
         <Button
           icon="pi pi-phone"
           label="Llamada Telefónica"
-          @click="handleSubmenuClick({ value: 'llamada' })"
+          @click="handleSubmenuClick({ value: 'llamada' }, submenuCliente)"
         />
       </div>
     </Dialog>
