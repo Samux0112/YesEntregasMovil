@@ -2,39 +2,39 @@
 import { ref } from "vue";
 import AppMenuItem from "./AppMenuItem.vue";
 
-const isDayFinished = () => {
-  return localStorage.getItem("dayFinished") === "true";
-};
-
 const model = ref([
   {
-    label: "Home",
+    label: "Pantalla de bienvenida",
     items: [
       {
-        label: "Dashboard",
+        label: "Inicio",
         icon: "pi pi-fw pi-home",
         to: { name: "dashboard" },
       },
     ],
   },
   {
-    label: "Clientes",
+    label: "Clientes  y entregas",
     items: [
       {
         label: "Clientes",
         icon: "pi pi-fw pi-users",
         to: { name: "clientes" },
       },
+      {
+        label: "Resumen de entregas",
+        icon: "pi pi-fw pi-chart-bar",
+        to: { name: "resumen" },
+      },
     ],
   },
   {
-    label: "Resumen",
+    label: "Limpieza del dispositivo",
     items: [
       {
-        label: "Resumen",
-        icon: "pi pi-fw pi-chart-bar",
-        to: { name: "resumen" },
-        disabled: !isDayFinished(),
+        label: "Limpiar base de datos",
+        icon: "pi pi-trash",
+        to: { name: "limpiarstorage" },
       },
     ],
   },

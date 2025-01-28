@@ -41,6 +41,12 @@ const routes = [
                 name: 'resumen',
                 component: () => import('@/views/ResumenView.vue'),
                 meta: { requiresAuth: true }
+            },
+            {
+                path: 'limpiarstorage', // Nueva ruta para la vista de limpiar
+                name: 'limpiarstorage',
+                component: () => import('@/views/LimpiarStorageView.vue'),
+                meta: { requiresAuth: true }
             }
         ]
     }
