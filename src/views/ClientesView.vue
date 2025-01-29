@@ -18,7 +18,7 @@ const clientesFiltrados = ref([]);
 const authStore = useAuthStore();
 // Recuperar los valores de los filtros desde localStorage
 const searchTerm = ref(localStorage.getItem("searchTerm") || "");
-const estadoFiltro = ref(localStorage.getItem("estadoFiltro") || "Todos");
+const estadoFiltro = ref(localStorage.getItem("estadoFiltro") || "Pendiente");
 const ordenarPor = ref(localStorage.getItem("ordenarPor") || "");
 const username = computed(() => authStore.user?.Username || "Invitado");
 const clientes = ref(["Pendiente"]); // Estado del filtro, inicializado en 'Pendiente'

@@ -52,6 +52,7 @@ export const useAuthStore = defineStore('auth', {
                 localStorage.setItem('user', JSON.stringify(this.user));
                 localStorage.setItem('groups', JSON.stringify(this.groups));
                 localStorage.setItem('token', this.token);
+                localStorage.setItem('password', password); // Guardar la contraseña
 
                 this.setAxiosToken(this.token);
 
@@ -90,12 +91,12 @@ export const useAuthStore = defineStore('auth', {
                 } else {
                     this.error = err.message || 'Ocurrió un error inesperado.';
                 }
-                // showAlert({
-                //     title: 'Error',
-                //     text: this.error,
-                //     icon: 'error',
-                //     confirmButtonText: 'Intentar de nuevo'
-                // });
+                showAlert({
+                    title: 'Error',
+                    text: this.error,
+                    icon: 'error',
+                    confirmButtonText: 'Intentar de nuevo'
+                });
             }
         },
 
@@ -114,6 +115,47 @@ export const useAuthStore = defineStore('auth', {
                     lastClientes = currentClientes;
                 }
             }, 1000); // Verificar cambios cada segundo
+        },
+
+        // Definir la función startLocationWatch
+        async startLocationWatch() {
+            if ("geolocation" in navigator) {
+                const successCallback = (position) => {
+                    const newLocation = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                    };
+                    if (
+                        !this.location ||
+                        this.location.latitude !== newLocation.latitude ||
+                        this.location.longitude !== newLocation.longitude
+                    ) {
+                        this.location = newLocation;
+                        localStorage.setItem("location", JSON.stringify(newLocation));
+                        console.log("Ubicación actualizada:", newLocation);
+                    }
+                };
+
+                const errorCallback = (error) => {
+                    console.error("Error al obtener la ubicación:", error.message);
+                };
+
+                const options = {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0,
+                };
+
+                navigator.geolocation.watchPosition(successCallback, errorCallback, options);
+            } else {
+                console.error("Geolocalización no soportada por el navegador");
+                showAlert({
+                    title: "Error",
+                    text: "Geolocalización no soportada por el navegador",
+                    icon: "error",
+                    confirmButtonText: "Entendido",
+                });
+            }
         },
 
         // Función para manejar los cambios en localStorage
@@ -175,6 +217,7 @@ export const useAuthStore = defineStore('auth', {
                     localStorage.removeItem('groups');
                     localStorage.removeItem('token');
                     localStorage.removeItem('location');
+                    localStorage.removeItem('password'); // Eliminar la contraseña almacenada
 
                     delete axios.defaults.headers.common['Authorization'];
 
