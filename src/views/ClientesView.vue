@@ -8,7 +8,7 @@ import Swal from "sweetalert2";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 //este hay que descomentariar si se compila en produccion o en este caso apk
-//import Highcharts from "highcharts";
+import Highcharts from "highcharts";
 const { showAlert } = useLayout();
 const { getPrimary, isDarkTheme } = useLayout();
 const router = useRouter();
