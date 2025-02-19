@@ -1,9 +1,10 @@
 <script setup>
 import { useAuthStore } from "@/api-plugins/authStores";
+import { useLayout } from "@/layout/composables/layout";
 import axios from "axios";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-
+const { showAlert } = useLayout();
 // Accede al router
 const router = useRouter();
 
@@ -133,7 +134,7 @@ const cargarClientesPendientes = async () => {
       ).length;
     } else {
       clientesPendientes.value = 0;
-      Swal.fire({
+      showAlert({
         title: "Sin clientes",
         text: "No se encontraron clientes para el usuario proporcionado.",
         icon: "info",
@@ -143,7 +144,7 @@ const cargarClientesPendientes = async () => {
   } catch (error) {
     console.error("Error al cargar los clientes:", error);
     clientesPendientes.value = 0;
-    Swal.fire({
+    showAlert({
       title: "Error",
       text: "Hubo un problema al cargar los clientes.",
       icon: "error",

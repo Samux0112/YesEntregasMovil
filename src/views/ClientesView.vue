@@ -808,8 +808,7 @@ const insertarCestasYJabas = async (
 ) => {
   const data = {
     kunnr,
-    vbeln: "",
-    tipo_mov: "E",
+    tipo_mov: "S",
     cantidad,
     fecha: new Date().toISOString().split("T")[0],
     usuario,

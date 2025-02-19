@@ -35,19 +35,20 @@ const numeroPalets = ref(0);
 const totalKgs = ref(0);
 
 // Función para obtener el número de jabas y palets desde la API
-const obtenerJabasYPallets = async (vbeln) => {
+const obtenerJabasYPallets = async (kunnr) => {
   try {
     const response = await axios.post(
       "https://calidad-yesentregas-api.yes.com.sv/control-cestas/",
       {
-        vbeln: vbeln,
+        kunnr: kunnr,
+        vbeln: "",
         start_date: null,
         end_date: null,
       }
     );
 
     if (response.data && response.data.length > 0) {
-      const salidas = response.data.filter((item) => item.tipo_mov === "S");
+      const salidas = response.data.filter((item) => item.tipo_mov === "E");
       numeroJabas.value = salidas.reduce((acc, item) => acc + item.cantidad, 0);
       numeroPalets.value = salidas.reduce(
         (acc, item) => acc + item.cantidad_palets,
