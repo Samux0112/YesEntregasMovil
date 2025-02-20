@@ -35,15 +35,16 @@ const numeroPalets = ref(0);
 const totalKgs = ref(0);
 
 // Función para obtener el número de jabas y palets desde la API
-const obtenerJabasYPallets = async (kunnr) => {
+const obtenerJabasYPallets = async () => {
+  const fechaActual = new Date().toISOString().split("T")[0]; // Obtener la fecha actual en formato YYYY-MM-DD
+
   try {
     const response = await axios.post(
       "https://calidad-yesentregas-api.yes.com.sv/control-cestas/",
       {
-        kunnr: kunnr,
-        vbeln: "",
-        start_date: null,
-        end_date: null,
+        kunnr: [cliente.value.KUNNR], // Enviar el KUNNR como un arreglo
+        start_date: fechaActual,
+        end_date: fechaActual,
       }
     );
 
@@ -500,6 +501,7 @@ const cargarCliente = async () => {
           "clienteSeleccionado",
           JSON.stringify(cliente.value)
         );
+        obtenerJabasYPallets(cliente.value.KUNNR);
       } else {
         console.error("Cliente no encontrado en la API.");
         cliente.value = null;

@@ -34,6 +34,7 @@ const submenuOptions = [
   { label: "Llamada Telefónica", value: "llamada" },
   { label: "Agregar Comentario", value: "comentario" },
   { label: "Agregar Cestas y jabas", value: "cestasyjabas" },
+  { label: "Capturar imagenes", value: "capturarImagenes" },
 ];
 
 const imageUrl = ref(null);
@@ -265,6 +266,7 @@ watch([searchTerm, estadoFiltro], () => {
     const nombreCoincide =
       cliente.NAME1.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
       cliente.NAME2.toLowerCase().includes(searchTerm.value.toLowerCase());
+
     const estadoCoincide =
       estadoFiltro.value === "Todos"
         ? true
@@ -447,10 +449,10 @@ const handleSubmenuClick = async (option, cliente) => {
         showAlert({
           title: "Tomar Georreferencia",
           html: `
-                        <p>Latitud: ${userLat}</p>
-                        <p>Longitud: ${userLon}</p>
-                        <img src="${imageUrl.value}" alt="Foto tomada" style="width: 100%; height: auto;" />
-                    `,
+            <p>Latitud: ${userLat}</p>
+            <p>Longitud: ${userLon}</p>
+            <img src="${imageUrl.value}" alt="Foto tomada" style="width: 100%; height: auto;" />
+          `,
           showCancelButton: true,
           confirmButtonText: "Guardar",
           cancelButtonText: "Cancelar",
@@ -467,7 +469,7 @@ const handleSubmenuClick = async (option, cliente) => {
               result.value.latitud,
               result.value.longitud,
               result.value.file
-            ); // Aquí se corrigió "longtud" a "longitud"
+            );
           }
         });
       }
@@ -502,11 +504,15 @@ const handleSubmenuClick = async (option, cliente) => {
       mostrarComentarioDialogo();
       break;
     case "cestasyjabas":
-      mostrarCestasYJabasDialogo();
+      mostrarCestasOPaletsDialogo();
+      break;
+    case "capturarImagenes":
+      mostrarCapturarImagenesDialogo();
       break;
   }
   showSubmenu.value = false;
 };
+
 const mostrarComentarioDialogo = async () => {
   const { value: comentario } = await showAlert({
     title: "Agregar Comentario",
@@ -520,6 +526,115 @@ const mostrarComentarioDialogo = async () => {
 
   if (comentario) {
     agregarComentarioAlCliente(submenuCliente.value.KUNNR, comentario);
+  }
+};
+const mostrarCapturarImagenesDialogo = async () => {
+  let fotos = [];
+  let capturarOtra = true;
+
+  while (capturarOtra) {
+    const foto = await tomarFoto(submenuCliente.value.KUNNR);
+    if (foto) {
+      fotos.push(foto);
+
+      const fotosHtml = fotos
+        .map(
+          (foto, index) =>
+            `<img src="${URL.createObjectURL(foto)}" alt="Foto ${
+              index + 1
+            }" style="width: 100%; height: auto;" />`
+        )
+        .join("");
+
+      await showAlert({
+        title: "Capturar Imágenes",
+        html: `
+          ${fotosHtml}
+          <p>¿Deseas capturar otra imagen?</p>
+        `,
+        showCancelButton: true,
+        confirmButtonText: "Sí",
+        cancelButtonText: "No",
+      }).then((result) => {
+        capturarOtra = result.isConfirmed;
+      });
+    } else {
+      capturarOtra = false;
+    }
+  }
+
+  if (fotos.length > 0) {
+    const fotosHtml = fotos
+      .map(
+        (foto, index) =>
+          `<img src="${URL.createObjectURL(foto)}" alt="Foto ${
+            index + 1
+          }" style="width: 100%; height: auto;" />`
+      )
+      .join("");
+
+    const { value: confirmacion } = await showAlert({
+      title: "Capturar Imágenes",
+      html: `
+        ${fotosHtml}
+      `,
+      showCancelButton: true,
+      confirmButtonText: "Guardar",
+      cancelButtonText: "Cancelar",
+      preConfirm: () => {
+        if (fotos.length === 0) {
+          Swal.showValidationMessage(`Por favor captura al menos una imagen`);
+        }
+        return { files: fotos };
+      },
+    });
+
+    if (confirmacion) {
+      const data = new FormData();
+      const timestamp = new Date().toISOString().split("T")[0];
+      confirmacion.files.forEach((file, index) => {
+        const filename = `${submenuCliente.value.KUNNR}_${timestamp}_${
+          index + 1
+        }.jpg`;
+        data.append("files", file, filename);
+      });
+      data.append(
+        "nombres",
+        confirmacion.files
+          .map(
+            (_, index) =>
+              `${submenuCliente.value.KUNNR}_${timestamp}_${index + 1}`
+          )
+          .join(",")
+      );
+
+      const config = {
+        method: "post",
+        url: "https://calidad-yesentregas-api.yes.com.sv/img/upload/",
+        data: data,
+      };
+
+      axios
+        .request(config)
+        .then((response) => {
+          console.log(JSON.stringify(response.data));
+          showAlert({
+            title: "Éxito",
+            text: "Las imágenes se han subido correctamente.",
+            icon: "success",
+            confirmButtonText: "OK",
+          });
+        })
+        .catch((error) => {
+          console.log(error);
+          showAlert({
+            title: "Error",
+            text: "Hubo un problema al subir las imágenes.",
+            icon: "error",
+            confirmButtonText: "OK",
+          });
+        });
+    }
   }
 };
 
@@ -800,19 +915,20 @@ const verificarActualizacionesCompletas = async () => {
   }
 };
 
-const insertarCestasYJabas = async (
+const insertarCestasOPalets = async (
   kunnr,
   cantidad,
   cantidadPalets,
   usuario
 ) => {
+  // Crear un objeto de datos para la solicitud
   const data = {
     kunnr,
     tipo_mov: "S",
-    cantidad,
     fecha: new Date().toISOString().split("T")[0],
     usuario,
-    cantidad_palets: cantidadPalets,
+    cantidad: cantidad ? cantidad : 0,
+    cantidad_palets: cantidadPalets ? cantidadPalets : 0,
   };
 
   try {
@@ -827,22 +943,23 @@ const insertarCestasYJabas = async (
     );
     showAlert(
       "Operación exitosa",
-      "Las cestas y jabas han sido insertadas correctamente.",
+      "Las cestas y/o palets han sido insertadas correctamente.",
       "success"
     );
     console.log("Respuesta de la API:", response.data);
   } catch (error) {
-    console.error("Error al insertar las cestas y jabas:", error);
+    console.error("Error al insertar las cestas y/o palets:", error);
     showAlert(
       "Error",
-      "Hubo un problema al insertar las cestas y jabas.",
+      "Hubo un problema al insertar las cestas y/o palets.",
       "error"
     );
   }
 };
-const mostrarCestasYJabasDialogo = async () => {
+
+const mostrarCestasOPaletsDialogo = async () => {
   const { value: formValues } = await showAlert({
-    title: "Agregar Cestas y Jabas",
+    title: "Agregar Cestas y/o Palets",
     html:
       '<input id="swal-input1" class="swal2-input" placeholder="Cantidad de cestas">' +
       '<input id="swal-input2" class="swal2-input" placeholder="Cantidad de palets">',
@@ -857,17 +974,19 @@ const mostrarCestasYJabasDialogo = async () => {
   if (formValues) {
     const { cantidad, cantidadPalets } = formValues;
     if (
-      !cantidad ||
-      !cantidadPalets ||
-      isNaN(cantidad) ||
-      isNaN(cantidadPalets)
+      (cantidad && isNaN(cantidad)) ||
+      (cantidadPalets && isNaN(cantidadPalets))
     ) {
-      Swal.showValidationMessage(`Por favor ingrese valores numéricos válidos`);
+      showAlert(
+        "Error",
+        "Por favor ingrese valores numéricos válidos",
+        "error"
+      );
     } else {
-      await insertarCestasYJabas(
+      await insertarCestasOPalets(
         submenuCliente.value.KUNNR,
-        cantidad,
-        cantidadPalets,
+        cantidad ? cantidad : 0,
+        cantidadPalets ? cantidadPalets : 0,
         username.value
       );
     }
@@ -1040,6 +1159,9 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
                       <div class="text-lg font-medium mt-1">
                         {{ cliente.NAME2 }}
                       </div>
+                      <div class="text-lg font-medium mt-1">
+                        {{ cliente.KUNNR }}
+                      </div>
                       <span
                         class="font-medium text-surface-500 dark:text-surface-400 text-sm"
                       >
@@ -1186,6 +1308,13 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
           icon="pi pi-thumbs-up"
           label="Agregar cestas y jabas al cliente"
           @click="handleSubmenuClick({ value: 'cestasyjabas' }, submenuCliente)"
+        />
+        <Button
+          icon="pi pi-camera"
+          label="Capturar imagenes"
+          @click="
+            handleSubmenuClick({ value: 'capturarImagenes' }, submenuCliente)
+          "
         />
         <Button
           icon="pi pi-map"
