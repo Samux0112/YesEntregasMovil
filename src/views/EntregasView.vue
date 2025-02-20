@@ -433,11 +433,6 @@ const sincronizarDatosPendientes = async () => {
       }
 
       localStorage.setItem("pendientes", JSON.stringify(pendientes));
-      showAlert(
-        "Sincronización",
-        "Los datos se han sincronizado correctamente.",
-        "success"
-      );
     } catch (error) {
       manejarErrorDeSincronizacion(error);
     }
@@ -621,7 +616,6 @@ const obtenerMotivos = async () => {
     }
   } catch (error) {
     console.error("Error al obtener los motivos:", error);
-    showAlert("Error", "Hubo un problema al obtener los motivos.", "error");
   }
 };
 
@@ -668,12 +662,6 @@ const startLocationWatch = () => {
     );
   } else {
     console.error("Geolocalización no soportada por el navegador");
-    showAlert({
-      title: "Error",
-      text: "Geolocalización no soportada por el navegador",
-      icon: "error",
-      confirmButtonText: "Entendido",
-    });
   }
 };
 

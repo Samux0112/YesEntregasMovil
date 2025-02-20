@@ -139,12 +139,6 @@ export default {
             );
             localStorage.removeItem("noEntregadoPendiente");
           }
-
-          showAlert(
-            "Sincronización",
-            "Los datos se han sincronizado correctamente.",
-            "success"
-          );
         } catch (error) {
           console.error("Error al sincronizar los datos:", error);
           showAlert(
