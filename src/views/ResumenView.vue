@@ -2,7 +2,7 @@
 import { useAuthStore } from "@/api-plugins/authStores"; // Asegúrate de importar tu authStore
 import { useLayout } from "@/layout/composables/layout";
 import axios from "axios"; // Asegúrate de importar axios
-//import Highcharts from "highcharts"; // Asegúrate de tener Highcharts importado
+import Highcharts from "highcharts"; // Asegúrate de tener Highcharts importado
 import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 

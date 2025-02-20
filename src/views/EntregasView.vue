@@ -564,8 +564,6 @@ const cargarProductosDesdeAPI = async () => {
         );
         console.log("Productos guardados en localStorage:", arktxList.value);
 
-        //
-
         // Llamar a obtenerJabasYPallets con el VBELN de la primera entrega
         obtenerJabasYPallets(entregasCliente[0].VBELN);
 

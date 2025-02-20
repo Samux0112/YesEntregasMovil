@@ -8,7 +8,7 @@ import Swal from "sweetalert2";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 //este hay que descomentariar si se compila en produccion o en este caso apk
-//import Highcharts from "highcharts";
+import Highcharts from "highcharts";
 const { showAlert } = useLayout();
 const { getPrimary, isDarkTheme } = useLayout();
 const router = useRouter();
@@ -481,7 +481,7 @@ const handleSubmenuClick = async (option, cliente) => {
       const clienteLonRoute = cliente.LONGITUD;
 
       const urlWaze = `https://www.waze.com/ul?ll=${clienteLatRoute},${clienteLonRoute}&navigate=yes&from=${userLatRoute},${userLonRoute}`;
-      const urlMaps = `https://www.google.com/maps/dir/?api=1&origin=${userLatRoute},${userLonRoute}&destination=${clienteLatRoute},${clienteLonRoute}`;
+      const urlMaps = `https://www.google.com/maps/dir/?api=1&travelmode=driving&origin=${userLatRoute},${userLonRoute}&destination=${clienteLatRoute},${clienteLonRoute}`;
 
       showAlert({
         title: "Ir Ahora",
