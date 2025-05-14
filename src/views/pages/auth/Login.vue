@@ -1,7 +1,7 @@
 <script setup>
 import { useAuthStore } from "@/api-plugins/authStores.js"; // Importa el store de autenticación
 import { useLayout } from "@/layout/composables/layout";
-import { onMounted, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 const { showAlert } = useLayout();
@@ -9,14 +9,6 @@ const username = ref("");
 const password = ref("");
 const authStore = useAuthStore(); // Instancia del store
 const router = useRouter();
-
-// Precargar credenciales de localStorage
-onMounted(() => {
-  const savedUsername = localStorage.getItem("savedUsername");
-  const savedPassword = localStorage.getItem("savedPassword");
-  if (savedUsername) username.value = savedUsername;
-  if (savedPassword) password.value = savedPassword;
-});
 
 // Poner en mayúscula las palabras del username
 watch(username, (newValue) => {
@@ -35,38 +27,30 @@ watch(password, (newValue) => {
 // Función para manejar el inicio de sesión
 const handleLogin = async () => {
   if (!username.value || !password.value) {
-    showAlert("Error", "Todos los campos son obligatorios", "error");
+    console.error("Todos los campos son obligatorios");
     return;
   }
 
   try {
-    // Guardar las credenciales en localStorage
-    localStorage.setItem("savedUsername", username.value);
-    localStorage.setItem("savedPassword", password.value);
-
     // Llamar al método de inicio de sesión del store
     await authStore.login(username.value, password.value);
 
     // Redirigir al dashboard si el inicio de sesión es exitoso
-    router.push("/dashboard");
+    if (authStore.user) {
+      router.push("/dashboard");
+    }
   } catch (error) {
+    // Manejar errores imprevistos si el login falla
     console.error("Error en el inicio de sesión:", error);
-    showAlert(
-      "Error",
-      "Inicio de sesión fallido, por favor verifica tus credenciales",
-      "error"
-    );
   }
 };
 </script>
-
 
 <template>
   <div
     class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-[100vw] overflow-hidden"
   >
     <div class="flex flex-col items-center justify-center">
-      <!-- Reemplazamos var(--primary-color) por el código hexadecimal del color naranja -->
       <div
         style="
           border-radius: 56px;

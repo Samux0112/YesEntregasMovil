@@ -481,7 +481,7 @@ const handleSubmenuClick = async (option, cliente) => {
       const clienteLonRoute = cliente.LONGITUD;
 
       const urlWaze = `https://www.waze.com/ul?ll=${clienteLatRoute},${clienteLonRoute}&navigate=yes&from=${userLatRoute},${userLonRoute}`;
-      const urlMaps = `https://www.google.com/maps/dir/?api=1&travelmode=driving&origin=${userLatRoute},${userLonRoute}&destination=${clienteLatRoute},${clienteLonRoute}&dir_action=navigate`;
+      const urlMaps = `https://www.google.com/maps/dir/?api=1&travelmode=driving&origin=${userLatRoute},${userLonRoute}&destination=${clienteLatRoute},${clienteLonRoute}&dirflg=d`;
 
       showAlert({
         title: "Ir Ahora",
