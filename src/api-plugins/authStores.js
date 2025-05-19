@@ -21,12 +21,12 @@ export const useAuthStore = defineStore('auth', {
     }),
 
     actions: {
-        async login(username, password) {
+       async login(username, password) {
             try {
                 const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/auth/', {
                     username,
                     password,
-                    country: 'sv'
+                    country: username.includes("GT") ? 'gt' : 'sv' // Determina el país según el nombre de usuario
                 });
 
                 if (!response.data.user?.user_data || !response.data.user?.groups || !response.data.token?.access_token) {
@@ -38,7 +38,9 @@ export const useAuthStore = defineStore('auth', {
                 this.token = response.data.token.access_token;
                 this.error = null;
 
-                const hasRequiredGroup = this.groups.includes('YesEntregas-Entregador');
+                // Verifica si el usuario pertenece a alguno de los grupos permitidos
+                const hasRequiredGroup = this.groups.includes('YesEntregas-Entregador') || 
+                                         this.groups.includes('YesEntregas-EntregadorGT');
                 if (!hasRequiredGroup) {
                     showAlert({
                         title: 'Acceso Denegado',

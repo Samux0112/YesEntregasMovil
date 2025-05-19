@@ -7,12 +7,13 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
+const ruta = computed(() => authStore.user?.Username || "No existe la ruta");
 //este hay que descomentariar si se compila en produccion o en este caso apk
 import Highcharts from "highcharts";
 const { showAlert } = useLayout();
 const { getPrimary, isDarkTheme } = useLayout();
 const router = useRouter();
-const options = ref(["list", "grid"]);
+const options = ref(["list","grid"]);
 const layout = ref("grid"); // Inicializa en 'grid'
 const clientesFiltrados = ref([]);
 const authStore = useAuthStore();
@@ -1036,6 +1037,7 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
     <div class="col-span-12">
       <div class="mt-4">
         <!-- Campo de búsqueda -->
+        
         <input
           v-model="searchTerm"
           type="text"
@@ -1110,7 +1112,7 @@ watch([isDarkTheme, getPrimary], updateChartOptions);
       <div v-if="clientesFiltrados.length > 0" class="mt-4">
         <DataView :value="clientesFiltrados" :layout="layout">
           <template #header>
-            <div class="font-semibold text-xl">Lista de clientes</div>
+            <div class="font-semibold text-xl">Lista de clientes ruta: {{ ruta }}</div>
             <div class="mt-1 text-sm">
               <span class="font-semibold text-l"
                 >Totales: {{ clientesTotales }}</span

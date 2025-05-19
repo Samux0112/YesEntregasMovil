@@ -35,7 +35,17 @@ const handleLogin = async () => {
     // Llamar al método de inicio de sesión del store
     await authStore.login(username.value, password.value);
 
-    // Redirigir al dashboard si el inicio de sesión es exitoso
+    // Validar si el usuario pertenece a los grupos requeridos ("YesEntregas-Entregador" o "YesEntregas-EntregadorGT")
+    const hasRequiredGroup =
+      authStore.groups.includes("YesEntregas-Entregador") ||
+      authStore.groups.includes("YesEntregas-EntregadorGT");
+
+    if (!hasRequiredGroup) {
+      console.error("El usuario no pertenece a ninguno de los grupos requeridos.");
+      return;
+    }
+
+    // Redirigir al dashboard si el inicio de sesión es exitoso y el grupo es válido
     if (authStore.user) {
       router.push("/dashboard");
     }
