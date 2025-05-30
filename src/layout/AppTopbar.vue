@@ -1,7 +1,7 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'; // Importa ref, onMounted y computed para manejar el estado reactivo
 import { useAuthStore } from '@/api-plugins/authStores.js'; // Importa el store de autenticación
 import { useLayout } from '@/layout/composables/layout';
+import { computed } from 'vue'; // Importa ref, onMounted y computed para manejar el estado reactivo
 import AppConfigurator from './AppConfigurator.vue';
 
 const authStore = useAuthStore(); // Instanciamos el store de autenticación
@@ -9,6 +9,10 @@ const { toggleMenu, toggleDarkMode, isDarkTheme, defaultSwal } = useLayout();
 
 // Leer el estado de mute desde el store
 const isMuted = computed(() => authStore.isMuted);
+
+// Computed para nombre y ruta
+const username = computed(() => authStore.user?.Nombre || "Invitado");
+const ruta = computed(() => authStore.user?.Username || "Sin ruta");
 
 // Lógica para manejar el logout
 const handleLogout = () => {
@@ -23,11 +27,15 @@ const handleLogout = () => {
                 <i class="pi pi-bars"></i>
             </button>
             <router-link to="/dashboard" class="layout-topbar-logo">
-                <span>Yes entregas</span>
+                <span class="font-bold text-xs">Yes entregas</span>
             </router-link>
         </div>
 
         <div class="layout-topbar-actions">
+            <!-- Mostrar nombre y ruta del usuario con estilo -->
+            <div class="layout-topbar-user flex items-center space-x-2" v-if="authStore.user">
+                <span class="text-secondary text-xs">Ruta: {{ ruta }}</span>
+            </div>
             <div class="layout-config-menu">
                 <AppConfigurator />
                 <div class="relative">
