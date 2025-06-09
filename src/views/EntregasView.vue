@@ -706,8 +706,6 @@ window.addEventListener("online", sincronizarDatosPendientes);
     <div v-if="cliente">
       <DataTable
         :value="filteredArktxList"
-        :paginator="true"
-        :rows="10"
         dataKey="id"
         :rowHover="true"
         filterDisplay="menu"
